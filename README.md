@@ -91,6 +91,8 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 | `teleop_estop` | shipped |
 | `teleop_set_mode` | shipped (M3) |
 | `teleop_takeover` | shipped (M3) |
+| `teleop_set_gaze` | shipped (PTZ bench / head-follow prep) |
+| `teleop_gaze_center` | shipped |
 | `teleop_task_dispatch` | planned |
 
 ---

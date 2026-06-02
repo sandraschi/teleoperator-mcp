@@ -21,6 +21,8 @@ from .ws.handler import (
     teleop_websocket,
     trigger_estop,
     trigger_set_mode,
+    trigger_set_gaze,
+    trigger_gaze_center,
     trigger_takeover,
 )
 
@@ -100,6 +102,18 @@ async def teleop_takeover(group: str | None = None) -> dict:
     return await trigger_takeover(group=g)
 
 
+@mcp.tool()
+async def teleop_set_gaze(pan: float, tilt: float) -> dict:
+    """Move Boomy camera to absolute pan/tilt (0-180°, center ~90). Bench + head-follow prep."""
+    return await trigger_set_gaze(pan=pan, tilt=tilt)
+
+
+@mcp.tool()
+async def teleop_gaze_center() -> dict:
+    """Center camera servos (neutral head-follow reference)."""
+    return await trigger_gaze_center()
+
+
 _mcp_http = mcp.http_app()
 
 
@@ -120,6 +134,36 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.post("/api/v1/teleop/set_mode")
+async def api_teleop_set_mode(
+    group: str,
+    mode: str,
+    confirm_bench: bool = False,
+) -> dict:
+    """REST mirror of teleop_set_mode for bench scripts (hits live server state)."""
+    return await trigger_set_mode(group=group.lower(), mode=mode.upper(), confirm_bench=confirm_bench)
+
+
+@app.post("/api/v1/teleop/estop")
+async def api_teleop_estop() -> dict:
+    return await trigger_estop(reason="api")
+
+
+@app.post("/api/v1/teleop/takeover")
+async def api_teleop_takeover() -> dict:
+    return await trigger_takeover()
+
+
+@app.post("/api/v1/teleop/gaze")
+async def api_teleop_gaze(pan: float, tilt: float) -> dict:
+    return await trigger_set_gaze(pan=pan, tilt=tilt)
+
+
+@app.post("/api/v1/teleop/gaze/center")
+async def api_teleop_gaze_center() -> dict:
+    return await trigger_gaze_center()
 
 
 @app.get("/api/v1/health")

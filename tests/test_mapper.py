@@ -4,11 +4,18 @@ from teleoperator_mcp.config import cors_origins_list, settings
 from teleoperator_mcp.mappers.boomy import BoomyMapper
 
 
+def test_boomy_mapper_head_neutral_center() -> None:
+    mapper = BoomyMapper()
+    ptz = mapper.map_head({"yaw": 0.0, "pitch": 0.0})
+    assert ptz.pan == 90.0
+    assert ptz.tilt == 90.0
+
+
 def test_boomy_mapper_head_clamp() -> None:
     mapper = BoomyMapper()
     ptz = mapper.map_head({"yaw": 2.0, "pitch": -1.0})
-    assert ptz.pan == 90.0
-    assert ptz.tilt == -30.0
+    assert ptz.pan == 180.0
+    assert ptz.tilt == 45.0
 
 
 def test_boomy_mapper_drive_deadman() -> None:

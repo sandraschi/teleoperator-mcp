@@ -18,7 +18,11 @@ class HumanPoseProducer:
         self, head: dict, right: dict, *, include_gaze: bool = True
     ) -> ProducerCommand:
         base = BoomyAdapter.base_from_controller(right)
-        gaze = BoomyAdapter.gaze_from_head(head) if include_gaze else None
+        gaze = None
+        if include_gaze and self.adapter is not None:
+            gaze = self.adapter.gaze_from_head_follow(head)
+        elif include_gaze:
+            gaze = BoomyAdapter.gaze_from_head(head)
         return ProducerCommand(
             producer_id=self.producer_id,
             base=base,

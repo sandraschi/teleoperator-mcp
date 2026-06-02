@@ -12,6 +12,7 @@ import httpx
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ..config import settings
+from ..gaze import GazeFollower
 from ..runtime import get_adapter, get_arbiter
 from ..safety import (
     arm_auto_timer,
@@ -76,19 +77,25 @@ async def ensure_auto_loop() -> None:
     global _auto_task
     arbiter = get_arbiter()
     if not arbiter.any_auto():
+        if _auto_task is not None and not _auto_task.done():
+            _auto_task.cancel()
         return
     if _auto_task is not None and not _auto_task.done():
         return
 
     async def _loop() -> None:
-        while get_arbiter().any_auto():
-            async with httpx.AsyncClient() as client:
-                if await auto_safety_tick(client):
-                    break
-                if not get_arbiter().state.estop_latched:
-                    await get_arbiter().apply_resolved(client)
-            await asyncio.sleep(0.1)
-        logger.info("auto loop stopped (no AUTO groups)")
+        try:
+            while get_arbiter().any_auto():
+                async with httpx.AsyncClient() as client:
+                    if await auto_safety_tick(client):
+                        break
+                    if not get_arbiter().state.estop_latched:
+                        await get_arbiter().apply_resolved(client)
+                await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            raise
+        finally:
+            logger.info("auto loop stopped (no AUTO groups)")
 
     _auto_task = asyncio.create_task(_loop())
     logger.info("auto loop started")
@@ -141,12 +148,18 @@ async def trigger_set_mode(
         return {"success": False, "message": str(exc)}
 
     if mode == "AUTO" and group == "base":
-        arm_auto_timer()
-        await speak_auto_start_warning(bench=confirm_bench and not session_active())
+        reset_auto_timer()
     elif mode == "DIRECT":
         reset_auto_timer()
 
     await ensure_auto_loop()
+
+    if mode == "AUTO" and group == "base":
+        arm_auto_timer()
+        asyncio.create_task(
+            speak_auto_start_warning(bench=confirm_bench and not session_active())
+        )
+
     return {
         "success": True,
         "message": f"{group} -> {mode}",
@@ -163,6 +176,24 @@ async def trigger_takeover(group: str | None = None) -> dict:
     except ValueError as exc:
         return {"success": False, "message": str(exc)}
     return {"success": True, "message": "Human takeover", **result}
+
+
+async def trigger_set_gaze(pan: float, tilt: float) -> dict:
+    """Absolute PTZ (0-180°) for bench tests and head-follow prep."""
+    adapter = get_adapter()
+    gaze = GazeFollower.absolute(pan, tilt)
+    async with httpx.AsyncClient() as client:
+        ok = await adapter.apply_gaze(gaze, client)
+    return {
+        "success": ok,
+        "message": f"PTZ pan={int(gaze.pan)} tilt={int(gaze.tilt)}",
+        "pan": gaze.pan,
+        "tilt": gaze.tilt,
+    }
+
+
+async def trigger_gaze_center() -> dict:
+    return await trigger_set_gaze(settings.ptz_pan_center, settings.ptz_tilt_center)
 
 
 async def _notify_client(payload: dict) -> None:
@@ -201,7 +232,10 @@ async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> N
     head = payload.get("head") or {}
     right = payload.get("right") or {}
 
-    include_gaze = _stats.frames_in % 3 == 0
+    include_gaze = (
+        settings.gaze_every_n_frames <= 1
+        or _stats.frames_in % settings.gaze_every_n_frames == 0
+    )
     human = get_arbiter().human
     command = human.from_pose_frame(head, right, include_gaze=include_gaze)
     arbiter = get_arbiter()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 
@@ -48,13 +49,13 @@ async def speak_auto_start_warning(*, bench: bool = False) -> None:
 
 
 async def force_auto_stop(http_client: httpx.AsyncClient, *, reason: str) -> dict:
-    """Takeover + e-stop + spoken confirmation."""
+    """End AUTO: human takeover + zero drive (no estop latch — timed stop is not a fault)."""
     reset_auto_timer()
     arbiter = get_arbiter()
     arbiter.takeover()
-    await arbiter.estop(http_client)
+    await arbiter.adapter.e_stop(http_client)
     logger.warning("AUTO force-stopped (%s)", reason)
-    await speak_warning("Autonomous drive stopped. Robot halted.")
+    asyncio.create_task(speak_warning("Autonomous drive stopped. Robot halted."))
     return {"stopped": True, "reason": reason}
 
 
@@ -66,7 +67,7 @@ async def auto_safety_tick(http_client: httpx.AsyncClient) -> bool:
         return False
 
     if _auto_started_at is None:
-        arm_auto_timer()
+        return False
 
     elapsed = time.monotonic() - _auto_started_at
     limit = settings.auto_max_duration_s

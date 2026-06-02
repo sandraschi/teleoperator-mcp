@@ -8,6 +8,7 @@ from ..config import settings
 from ..mappers.boomy import BoomyMapper, DriveCommand, PtzCommand
 from ..types import BaseCommand, GazeCommand, ProducerCommand, RobotCapabilities
 from .base import RobotAdapter
+from ..gaze import GazeFollower
 
 
 class BoomyAdapter(RobotAdapter):
@@ -15,6 +16,18 @@ class BoomyAdapter(RobotAdapter):
 
     def __init__(self, mapper: BoomyMapper | None = None) -> None:
         self._mapper = mapper or BoomyMapper()
+        self._gaze = GazeFollower(self._mapper)
+
+    @property
+    def gaze_follower(self) -> GazeFollower:
+        return self._gaze
+
+    async def apply_gaze(self, gaze: GazeCommand, client: httpx.AsyncClient) -> bool:
+        ptz = PtzCommand(pan=gaze.pan, tilt=gaze.tilt)
+        ok = await self._mapper.apply_ptz(ptz, client)
+        if ok:
+            self._gaze.remember(gaze.pan, gaze.tilt)
+        return ok
 
     @property
     def capabilities(self) -> RobotCapabilities:
@@ -42,8 +55,7 @@ class BoomyAdapter(RobotAdapter):
             )
             await self._mapper.apply_drive(drive, client)
         if command.gaze is not None:
-            ptz = PtzCommand(pan=command.gaze.pan, tilt=command.gaze.tilt)
-            await self._mapper.apply_ptz(ptz, client)
+            await self.apply_gaze(command.gaze, client)
 
     async def e_stop(self, client: httpx.AsyncClient) -> None:
         await self._mapper.e_stop(client)
@@ -52,6 +64,9 @@ class BoomyAdapter(RobotAdapter):
     def gaze_from_head(head: dict) -> GazeCommand:
         ptz = BoomyMapper().map_head(head)
         return GazeCommand(pan=ptz.pan, tilt=ptz.tilt)
+
+    def gaze_from_head_follow(self, head: dict) -> GazeCommand | None:
+        return self._gaze.from_head(head)
 
     @staticmethod
     def base_from_controller(right: dict) -> BaseCommand:

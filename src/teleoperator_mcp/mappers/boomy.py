@@ -39,8 +39,10 @@ class BoomyMapper:
     def map_head(self, head: dict) -> PtzCommand:
         yaw = float(head.get("yaw", 0.0))
         pitch = float(head.get("pitch", 0.0))
-        pan = self._clamp(yaw * settings.pan_gain, -90.0, 90.0)
-        tilt = self._clamp(pitch * settings.tilt_gain, -30.0, 30.0)
+        pan_offset = self._clamp(yaw * settings.pan_gain, -90.0, 90.0)
+        tilt_offset = self._clamp(pitch * settings.tilt_gain, -45.0, 45.0)
+        pan = self._clamp(settings.ptz_pan_center + pan_offset, 0.0, 180.0)
+        tilt = self._clamp(settings.ptz_tilt_center + tilt_offset, 0.0, 180.0)
         return PtzCommand(pan=pan, tilt=tilt)
 
     def map_drive(self, right: dict) -> DriveCommand:
