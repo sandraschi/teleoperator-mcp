@@ -5,5 +5,7 @@ WebXR teleoperation gateway for the MCP fleet. VR headset (Pico 4) streams pose 
 - PRD: docs/PRD.md
 - Dual-mode arc: docs/DUAL_MODE_ARCHITECTURE.md
 - Plan: docs/TODO.md
+- HTTPS: docs/HTTPS.md
+- Bring-up: docs/BRINGUP.md
 - Stack: docs/STACK.md
 - Ports: webapp 10900, backend 10901 (WebSocket + REST + MCP HTTP)

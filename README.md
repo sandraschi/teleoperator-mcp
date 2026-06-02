@@ -28,6 +28,8 @@ The larger arc (direct teleop <-> autonomy, operator as telesupervisor) is speci
 | **[docs/PRD.md](docs/PRD.md)** | v1 product spec: pose schema, HUD, safety, ports, env |
 | **[docs/DUAL_MODE_ARCHITECTURE.md](docs/DUAL_MODE_ARCHITECTURE.md)** | The target architecture: arbiter, per-group authority, robot adapter, hardware ladder, controller-swap, perception split |
 | **[docs/STACK.md](docs/STACK.md)** | Full technology stack across all layers, present and planned |
+| **[docs/HTTPS.md](docs/HTTPS.md)** | Pico HTTPS: Tailscale Serve vs self-signed |
+| **[docs/BRINGUP.md](docs/BRINGUP.md)** | Milestone 1 bench checklist (Boomy + Pico) |
 | **[docs/TODO.md](docs/TODO.md)** | Concrete milestone plan with realistic timelines and fleet-compliance gaps |
 
 ---

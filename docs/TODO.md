@@ -25,9 +25,9 @@ Make the direct-teleop path solid enough to put on a real robot.
 
 Prove the data plane on real hardware before adding anything on top.
 
-- [ ] Confirm the yahboom REST contract is real: `POST /api/v1/control/move` (linear/angular/linear_y) and `/api/v1/control/tool` `camera_set_pos`. PRD open item; adjust mapper if the deployed API differs.
-- [ ] HTTPS for the webapp on 10900 (WebXR requirement). Decide Tailscale Serve vs self-signed; document in `docs/HTTPS.md`.
-- [ ] Pico Browser WebXR feature-matrix test on hardware (immersive-vr, local-floor, gamepad axes/buttons).
+- [ ] Confirm the yahboom REST contract is real: `POST /api/v1/control/move` (linear/angular/linear_y) and `/api/v1/control/tool` `camera_set_pos`. See [BRINGUP.md](BRINGUP.md) section 3.
+- [x] **HTTPS doc:** [HTTPS.md](HTTPS.md) (Tailscale Serve recommended). Deploy on Goliath still required before Pico test.
+- [ ] Pico Browser WebXR feature-matrix test on hardware (immersive-vr, local-floor, gamepad axes/buttons). Checklist: [BRINGUP.md](BRINGUP.md) section 4.
 - [ ] End-to-end: Pico pose -> drive + PTZ on Boomy; verify deadman, watchdog (<300 ms stop), single-session reject.
 - [ ] Measure real latency (motion-to-command, and later motion-to-photon once video lands).
 

@@ -55,7 +55,7 @@ Status legend: **[now]** shipped in v0.1 - **[next]** near-term (v0.2-v0.5) - **
 | Video return | LiveKit track -> Three.js plane | later (v1.5) | placeholder mesh exists |
 | Package manager | npm | now | Fleet standard is **Bun** (`BUN_STANDARDS`); migration is a TODO |
 
-Serving requires **HTTPS** (WebXR constraint). Cert strategy open: Tailscale Serve vs self-signed. See PRD open items.
+Serving requires **HTTPS** (WebXR constraint). See [HTTPS.md](HTTPS.md).
 
 ---
 
