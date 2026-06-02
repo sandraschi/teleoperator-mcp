@@ -21,6 +21,10 @@ dependencies = [
     "structlog>=24.0.0",
     "prefab-ui>=0.14.0",
     "websockets>=13.0",
+    "livekit>=1.0.0",
+    "livekit-api>=1.0.0",
+    "numpy>=1.26.0",
+    "Pillow>=10.0.0",
 ]
 
 [project.optional-dependencies]

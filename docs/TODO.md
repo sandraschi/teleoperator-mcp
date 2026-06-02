@@ -70,10 +70,12 @@ The abstraction that makes the hardware ladder a driver swap.
 
 ## Milestone 5 - Video return v1.5 (~1-2 days, needs myconf)
 
-- [ ] Encode on **Goliath**, not the Pi (Pi 5 has no hardware H.264 encoder). Boomy ships raw/MJPEG to Goliath; Goliath encodes and publishes to LiveKit room `teleop-boomy`.
-- [ ] WebXR client subscribes to the LiveKit track, maps to the front plane (flat mono).
-- [ ] Reuse myconf token endpoint pattern; document in `docs/LIVEKIT.md`.
-- [ ] Re-measure motion-to-photon latency; assess vestibular comfort with head-coupled PTZ (may decouple in v1 if nauseating).
+- [x] Goliath-side publisher: yahboom MJPEG/snapshot → LiveKit track (`src/teleoperator_mcp/livekit/`).
+- [x] Token + config REST; MCP `teleop_livekit_*` tools; webapp `livekit-client` subscribe → center plane.
+- [x] Document in [LIVEKIT.md](LIVEKIT.md).
+- [ ] Encode path tuned (FFmpeg H.264 ingest optional; current path is I420 frame publish).
+- [ ] Tailscale WSS + UDP bench on Pico; motion-to-photon latency measurement.
+- [ ] Re-assess vestibular comfort with head-coupled PTZ + video lag (decouple if nauseating).
 
 ---
 

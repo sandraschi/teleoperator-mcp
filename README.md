@@ -19,13 +19,15 @@ WebXR teleoperation gateway for the MCP fleet: stream VR pose from **Pico 4** or
 
 ## What this is
 
-Two surfaces, two latency classes, one gateway:
+Two surfaces, two latency classes, one gateway — plus a **separate video pipe** (LiveKit):
 
 | Surface | Role | Latency |
 |---------|------|---------|
-| **Webapp (WebXR)** | VR client on Pico / Meta — pose, HUD, video | ~30 Hz WebSocket |
-| **MCP server** | Supervisor tools — status, configure, estop, (future) mode switch | seconds |
+| **Webapp (WebXR)** | VR client on Pico / Meta — pose, HUD, video | ~30 Hz WebSocket + ~15 FPS WebRTC |
+| **MCP server** | Supervisor tools — status, configure, estop, mode, LiveKit publisher | seconds |
 | **Robot adapter** | Maps standard commands to yahboom-mcp REST (Boomy today) | same hot path |
+
+**Confused by ports?** Start with **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** (control vs video explained simply).
 
 Pose **never** traverses MCP tool calls. The webapp **is** the VR client, not a separate admin dashboard.
 
@@ -37,7 +39,10 @@ Target architecture (arbiter, per-group authority, LeRobot logging, VLA producer
 
 | Doc | Contents |
 |-----|----------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | **Two-pipe map** (control vs video), ports, module index |
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | **LeRobot, VLA, arbiter, WebXR**, fleet terms |
+| [docs/LIVEKIT.md](docs/LIVEKIT.md) | **Video return** — setup, env vars, troubleshooting |
+| [docs/LEROBOT.md](docs/LEROBOT.md) | Session recording (JSONL episodes) |
 | [docs/PRD.md](docs/PRD.md) | v1 product spec |
 | [docs/WEBXR.md](docs/WEBXR.md) | In-repo VR client (no Pico SDK) |
 | [docs/TAILSCALE_VIEWERS.md](docs/TAILSCALE_VIEWERS.md) | **Pico / Meta + Tailscale** — setup and pitfalls |
@@ -68,16 +73,17 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 | Webapp | Vite + Three.js WebXR | 10900 |
 | Backend | FastAPI + FastMCP + WebSocket | 10901 |
 | Adapter | `BoomyAdapter` → [yahboom-mcp](https://github.com/sandraschi/yahboom-mcp) | 10892 |
-| Video (planned) | [myconf](https://github.com/sandraschi/myconf) LiveKit | 15580 |
+| Video | [myconf](https://github.com/sandraschi/myconf) LiveKit + Goliath publisher | 15580 |
 
 ```
   Pico / Meta Quest (Tailscale + Browser)
-           |  HTTPS / WSS
-           v
-  Goliath: teleoperator-mcp (adapter + producer + MCP)
-           |
-           v
-  Boomy Pi: yahboom-mcp -> /cmd_vel, PTZ
+     |  HTTPS/WSS pose (:10900 → :10901)
+     |  WebRTC video (:15580 LiveKit)
+     v
+  Goliath: teleoperator-mcp + LiveKit publisher
+     |
+     v
+  Boomy Pi: yahboom-mcp → /cmd_vel, PTZ, camera /stream
 ```
 
 ---
@@ -93,6 +99,8 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 | `teleop_takeover` | shipped (M3) |
 | `teleop_set_gaze` | shipped (PTZ bench / head-follow prep) |
 | `teleop_gaze_center` | shipped |
+| `teleop_livekit_status` | shipped (M5) |
+| `teleop_livekit_publisher_start` / `_stop` | shipped (M5) |
 | `teleop_task_dispatch` | planned |
 
 ---
@@ -113,8 +121,8 @@ Details and troubleshooting: **[docs/TAILSCALE_VIEWERS.md](docs/TAILSCALE_VIEWER
 | M1 | Boomy + headset hardware bring-up | in progress |
 | M2 | Robot adapter + `ProducerCommand` | **adapter layer shipped** |
 | M3 | Arbiter + AUTO stub | **shipped** (headset squeeze test pending M1) |
-| M4 | [LeRobot](docs/GLOSSARY.md#autonomy-and-learning-future-phases) episode logging | planned |
-| v1.5 | LiveKit video return | planned |
+| M4 | LeRobot JSONL session logging | **shipped** |
+| M5 | LiveKit video return | **shipped** (headset + latency sign-off pending) |
 
 ---
 

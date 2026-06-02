@@ -25,6 +25,20 @@ class Settings(BaseSettings):
     recording_enabled: bool = True
     recording_dir: str = "data/teleop_recordings"
     recording_fps: int = 30
+    # LiveKit video return (M5) — myconf SFU on Goliath :15580
+    livekit_enabled: bool = True
+    livekit_url: str = "ws://127.0.0.1:15580"
+    livekit_public_url: str = ""  # Browser WSS URL; empty → livekit_url
+    livekit_api_key: str = "devkey"
+    livekit_api_secret: str = "secret"
+    livekit_room: str = "teleop-boomy"
+    livekit_publisher_identity: str = "teleop-publisher"
+    livekit_publisher_fps: int = 15
+    livekit_frame_width: int = 640
+    livekit_frame_height: int = 480
+    livekit_mjpeg_url: str = ""  # empty → {yahboom_api_url}/stream
+    livekit_snapshot_fallback: bool = True
+    livekit_auto_start_publisher: bool = False
     # AUTO safety (M3 nav stub)
     auto_max_duration_s: float = 10.0
     auto_warn_before_s: float = 3.0

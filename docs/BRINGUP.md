@@ -100,7 +100,7 @@ On headset browser, open `https://goliath.tailfab45.ts.net/`.
 | Chin HUD visible | | |
 | Right trigger + stick drives (deadman) | | |
 | Head motion moves PTZ | | |
-| Squeeze/grip -> ESTOP | | |
+| Center view shows robot camera (**VID** in HUD) | | |
 | Release trigger -> stop | | |
 
 Record headset model, browser version, and behavior notes (Quest has no easy devtools).
@@ -121,7 +121,7 @@ Perform in order with Boomy on blocks or clear floor:
 
 From Cursor while backend is up and Goliath is on the Raspbot AP:
 
-1. `teleop_set_mode(group="base", mode="AUTO", confirm_bench=true)` — only on **blocks**; 10 s max, spoken warnings, forward crawl at 0.06 m/s.
+1. `teleop_set_mode(group="base", mode="AUTO", confirm_bench=true)` — only on **blocks**; 10 s max, spoken warnings, forward crawl at **0.15 m/s**.
 2. `teleop_status` — confirm `authority.base.mode` is `AUTO`, check `auto_elapsed_s`.
 3. `teleop_takeover()` — base returns to `DIRECT`; robot stops.
 4. `teleop_estop()` — hard stop; spoken "Emergency stop."
@@ -130,24 +130,54 @@ From Cursor while backend is up and Goliath is on the Raspbot AP:
 
 ---
 
-## 6. Latency (rough)
+## 6. Video return (M5, optional but recommended)
+
+Full guide: **[LIVEKIT.md](LIVEKIT.md)**. Short path:
+
+```powershell
+# myconf LiveKit (once)
+Set-Location D:\Dev\repos\myconf
+docker compose up -d livekit
+
+# teleoperator .env — set TELEOP_LIVEKIT_PUBLIC_URL for Pico Tailscale
+
+Set-Location D:\Dev\repos\teleoperator-mcp
+.\scripts\start-livekit-publisher.ps1
+Invoke-RestMethod http://127.0.0.1:10901/api/v1/livekit/status
+```
+
+**Expect:** `connected: true`, `frames_published` increasing. In VR, HUD shows **`VID`**.
+
+| Check | Pass? |
+|-------|-------|
+| `http://127.0.0.1:10892/stream` shows camera on Goliath | |
+| Publisher status healthy | |
+| Headset center view not gray | |
+
+If drive works but video does not, the control pipe is fine — troubleshoot **only** LiveKit (PUBLIC_URL, UDP, publisher).
+
+---
+
+## 7. Latency (rough)
 
 Measure subjectively first, then if needed:
 
 - **Motion-to-command:** stick deflection to wheel spin (target < 150 ms on LAN).
 - **Head-to-PTZ:** head turn to servo move (target < 200 ms).
+- **Motion-to-photon:** head turn to visible video shift (subjective; note if nauseating).
 
 Log notes in this file or a dated entry under `docs/archive/`.
 
 ---
 
-## 7. Sign-off
+## 8. Sign-off
 
 Milestone 1 complete when:
 
-- [ ] All section 4 matrix items pass
+- [ ] All section 4 matrix items pass (including **VID** if M5 enabled)
 - [ ] All section 5 safety drills pass
+- [ ] Section 6 video checks pass (if using LiveKit)
 - [ ] REST contract confirmed or mapper patched
 - [ ] HTTPS path documented with your actual Tailscale hostname
 
-Then proceed to Milestone 4 (LeRobot logging) in [TODO.md](TODO.md). Milestone 3 (arbiter) is software-complete; squeeze takeover sign-off is part of section 5 above.
+Then proceed to Milestone 5 acceptance (latency notes) or fleet backlog in [TODO.md](TODO.md). Milestone 3 (arbiter) is software-complete; squeeze takeover sign-off is part of section 5 above.

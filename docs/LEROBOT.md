@@ -45,6 +45,11 @@ Recording starts when a WebSocket session connects (`/ws/teleop?robot=boomy`) an
 
 `teleop_status` MCP tool and `GET /api/v1/health` include a `recording` block (active session, frame count, episode path).
 
-## Parquet export (later)
+## Parquet export + video (later)
 
-Full LeRobot parquet + video sync is deferred. JSONL is the stable interchange for now; a future `scripts/export-lerobot.ps1` can batch-convert episodes when manipulation video is wired (M5).
+Full LeRobot parquet with synced video is **not** in JSONL yet. When M5 video is stable, link episode timestamps to LiveKit egress or frame IDs. See [LIVEKIT.md](LIVEKIT.md) § Recording.
+
+## Related docs
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — control vs video pipes
+- [LIVEKIT.md](LIVEKIT.md) — video setup and troubleshooting

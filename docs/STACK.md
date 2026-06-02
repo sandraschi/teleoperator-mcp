@@ -26,7 +26,8 @@ Status legend: **[now]** shipped in v0.1 - **[next]** near-term (v0.2-v0.5) - **
 - `mappers/boomy.py` - `BoomyMapper`: head -> PTZ, stick -> cmd_vel; `api_base` reads live settings. **[now]**
 - `arbiter/` - authority arbiter, per-group ownership, takeover, bumpless handoff. **[next, does not exist]**
 - `adapters/` - `RobotAdapter`, `BoomyAdapter`, `RobotCapabilities`. **[now]**
-- `producers/` - `HumanPoseProducer` (human pose-mapper). Nav/VLA producers **[next/later]**
+- `recording/` - LeRobot JSONL session recorder (M4). **[now]**
+- `livekit/` - MJPEG publisher, JWT tokens (M5). **[now]**
 
 ---
 
@@ -52,7 +53,7 @@ Status legend: **[now]** shipped in v0.1 - **[next]** near-term (v0.2-v0.5) - **
 | Pose source | `getViewerPose` -> YXZ Euler; Gamepad API for axes/trigger/squeeze | now | `xr-session.ts` |
 | Transport client | native `WebSocket`, ack-based RTT, exponential reconnect | now | `pose-stream.ts` |
 | HUD | chin-strip canvas texture; redraw only when line changes | now | `hud.ts` |
-| Video return | LiveKit track -> Three.js plane | later (v1.5) | placeholder mesh exists |
+| Video return | LiveKit track → Three.js `VideoTexture` plane | now (M5) | `livekit-video.ts`; see [LIVEKIT.md](LIVEKIT.md) |
 | Package manager | npm | now | Fleet standard is **Bun** (`BUN_STANDARDS`); migration is a TODO |
 
 Serving requires **HTTPS** (WebXR constraint). See [HTTPS.md](HTTPS.md).
@@ -104,9 +105,9 @@ SKU traps (do not misbuy): R1 Air ($4,900) / R1 standard ($5,900) are **closed**
 | Ports | webapp 10900, backend 10901 (WS + REST + MCP HTTP) | now; registered in WEBAPP_PORTS |
 | Packaging | `uv` + `justfile` + `llms.txt` + `glama.json`; `mcpb pack` for distribution | partial |
 | Install | Naked-PC standard (`Require-Command` in `start.ps1`, `INSTALL.md`) | TODO (start.ps1 minimal launcher only) |
-| Data logging | LeRobot dataset format | TODO (v0.5) |
-| Downstream robot | yahboom-mcp (10892) | now (contract unverified) |
-| Video | myconf LiveKit (15580) | later (v1.5) |
+| Data logging | LeRobot JSONL episodes (`data/teleop_recordings/`) | now (M4); parquet + video sync later |
+| Downstream robot | yahboom-mcp (10892) | now |
+| Video | myconf LiveKit (15580) + teleoperator publisher | now (M5); headset sign-off pending |
 
 ---
 

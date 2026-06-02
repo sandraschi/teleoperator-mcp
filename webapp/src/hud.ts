@@ -13,6 +13,7 @@ export class XrHud {
   constructor(camera: THREE.Camera) {
     this.state = {
       wsConnected: false,
+      videoLive: false,
       rttMs: null,
       deadman: false,
       estop: false,
@@ -66,7 +67,8 @@ export class XrHud {
         : this.state.deadman
           ? "DRIVE"
           : "idle";
-    const line = `WS ${rtt} | ${drive} | PTZ ${this.state.panTilt} | #${this.state.seq}`;
+    const vid = this.state.videoLive ? "VID" : "vid--";
+    const line = `${vid} | WS ${rtt} | ${drive} | PTZ ${this.state.panTilt} | #${this.state.seq}`;
     if (line === this.lastLine) {
       return;
     }

@@ -31,6 +31,7 @@ export interface PoseFrame {
 
 export interface HudState {
   wsConnected: boolean;
+  videoLive: boolean;
   rttMs: number | null;
   deadman: boolean;
   estop: boolean;
@@ -41,6 +42,7 @@ export interface HudState {
 
 export const initialHudState = (): HudState => ({
   wsConnected: false,
+  videoLive: false,
   rttMs: null,
   deadman: false,
   estop: false,

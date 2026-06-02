@@ -13,8 +13,16 @@ import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastmcp import FastMCP
+from pydantic import BaseModel, Field
 
 from .config import cors_origins_list, settings
+from .livekit import (
+    get_publisher,
+    issue_subscriber_token,
+    livekit_public_config,
+    start_publisher,
+    stop_publisher,
+)
 from .ws.handler import (
     disconnect_all,
     session_stats,
@@ -114,6 +122,37 @@ async def teleop_gaze_center() -> dict:
     return await trigger_gaze_center()
 
 
+@mcp.tool()
+async def teleop_livekit_status() -> dict:
+    """LiveKit video return status (publisher + room config)."""
+    return {
+        "success": True,
+        "message": "LiveKit status",
+        "config": livekit_public_config(),
+        **get_publisher().status(),
+    }
+
+
+@mcp.tool()
+async def teleop_livekit_publisher_start() -> dict:
+    """Start Goliath-side MJPEG → LiveKit publisher for Boomy camera."""
+    result = await start_publisher()
+    return result
+
+
+@mcp.tool()
+async def teleop_livekit_publisher_stop() -> dict:
+    """Stop LiveKit camera publisher."""
+    result = await stop_publisher()
+    return result
+
+
+class LiveKitTokenBody(BaseModel):
+    identity: str = Field(min_length=1, max_length=128)
+    room: str | None = None
+    name: str | None = None
+
+
 _mcp_http = mcp.http_app()
 
 
@@ -121,7 +160,10 @@ _mcp_http = mcp.http_app()
 async def lifespan(_app: FastAPI):
     logger.info("Teleoperator MCP starting (port %s)", settings.port)
     async with _mcp_http.router.lifespan_context(_mcp_http):
+        if settings.livekit_enabled and settings.livekit_auto_start_publisher:
+            await start_publisher()
         yield
+    await stop_publisher()
     await disconnect_all()
     logger.info("Teleoperator MCP shutdown complete")
 
@@ -166,6 +208,45 @@ async def api_teleop_gaze_center() -> dict:
     return await trigger_gaze_center()
 
 
+@app.get("/api/v1/livekit/config")
+async def api_livekit_config() -> dict:
+    """Public LiveKit connection info for WebXR client (no secrets)."""
+    return livekit_public_config()
+
+
+@app.post("/api/v1/livekit/token")
+async def api_livekit_token(body: LiveKitTokenBody) -> dict:
+    """Subscribe-only JWT for headset browser (myconf-compatible keys)."""
+    if not settings.livekit_enabled:
+        return {"success": False, "message": "LiveKit disabled"}
+    room = (body.room or settings.livekit_room).strip()
+    try:
+        token = issue_subscriber_token(room=room, identity=body.identity.strip(), name=body.name)
+    except RuntimeError as exc:
+        return {"success": False, "message": str(exc)}
+    return {
+        "success": True,
+        "token": token,
+        "url": settings.livekit_public_url or settings.livekit_url,
+        "room": room,
+    }
+
+
+@app.get("/api/v1/livekit/status")
+async def api_livekit_status() -> dict:
+    return {"success": True, **get_publisher().status(), "config": livekit_public_config()}
+
+
+@app.post("/api/v1/livekit/publisher/start")
+async def api_livekit_publisher_start() -> dict:
+    return await start_publisher()
+
+
+@app.post("/api/v1/livekit/publisher/stop")
+async def api_livekit_publisher_stop() -> dict:
+    return await stop_publisher()
+
+
 @app.get("/api/v1/health")
 async def health() -> dict:
     return {
@@ -173,6 +254,7 @@ async def health() -> dict:
         "service": "teleoperator-mcp",
         "uptime_s": round(time.time() - start_time, 1),
         "teleop": session_stats(),
+        "livekit": get_publisher().status(),
     }
 
 

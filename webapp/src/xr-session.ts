@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { XrHud } from "./hud";
+import { LiveKitVideoPlane } from "./livekit-video";
 import { PoseStream } from "./pose-stream";
 import type { ControllerPose, HeadPose } from "./types";
 
@@ -37,6 +38,7 @@ export class XrSession {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private stream: PoseStream;
+  private video: LiveKitVideoPlane;
   private hud: XrHud | null = null;
   private session: XRSession | null = null;
   private refSpace: XRReferenceSpace | null = null;
@@ -44,8 +46,10 @@ export class XrSession {
   private lastSentAt = 0;
   private rttMs: number | null = null;
   private squeezeHeld = false;
+  private robotId: string;
 
   constructor(canvas: HTMLCanvasElement, robot: string) {
+    this.robotId = robot;
     this.stream = new PoseStream(robot);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -55,12 +59,7 @@ export class XrSession {
     this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
     this.scene.add(this.camera);
 
-    const videoPlaceholder = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.6, 0.9),
-      new THREE.MeshBasicMaterial({ color: 0x111118 }),
-    );
-    videoPlaceholder.position.set(0, 0, -1.2);
-    this.scene.add(videoPlaceholder);
+    this.video = new LiveKitVideoPlane(this.scene);
 
     this.stream.onOpen = () => this.hud?.update({ wsConnected: true });
     this.stream.onClose = () => this.hud?.update({ wsConnected: false });
@@ -80,6 +79,8 @@ export class XrSession {
     await this.renderer.xr.setSession(this.session);
     this.refSpace = await this.session.requestReferenceSpace("local-floor");
     this.hud = new XrHud(this.camera);
+    this.video.onLive = () => this.hud?.update({ videoLive: true });
+    void this.video.connect(this.robotId);
     this.stream.connect();
     document.body.classList.add("in-xr");
     this.session.addEventListener("end", () => this.stop());
@@ -89,6 +90,7 @@ export class XrSession {
   stop(): void {
     this.stream.sendEstop();
     this.stream.disconnect();
+    this.video.disconnect();
     this.hud?.dispose();
     this.hud = null;
     this.renderer.setAnimationLoop(null);
@@ -117,8 +119,8 @@ export class XrSession {
     }
 
     const sources = this.session?.inputSources ?? [];
-    const right = readController(sources.find((s) => s.handedness === "right"));
-    const left = readController(sources.find((s) => s.handedness === "left"));
+    const right = readController([...sources].find((s) => s.handedness === "right"));
+    const left = readController([...sources].find((s) => s.handedness === "left"));
     const takeoverHeld = squeezeActive(right) || squeezeActive(left);
 
     if (takeoverHeld && !this.squeezeHeld) {
@@ -134,6 +136,7 @@ export class XrSession {
 
     this.hud?.update({
       rttMs: this.rttMs,
+      videoLive: this.video.connectState === "live",
       deadman: (right.buttons.trigger ?? 0) > 0.5,
       estop: false,
       takeoverHeld,
