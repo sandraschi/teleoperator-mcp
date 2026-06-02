@@ -11,9 +11,11 @@ from dataclasses import dataclass, field
 import httpx
 from fastapi import WebSocket, WebSocketDisconnect
 
+from ..adapters.boomy import BoomyAdapter
 from ..config import settings
 from ..gaze import GazeFollower
-from ..runtime import get_adapter, get_arbiter
+from ..recording import get_recorder
+from ..runtime import bind_robot, get_active_robot, get_adapter, get_arbiter, robots_catalog
 from ..safety import (
     arm_auto_timer,
     auto_safety_tick,
@@ -57,6 +59,9 @@ def session_stats() -> dict:
     return {
         "active": _active_session is not None,
         "robot": _stats.robot,
+        "active_robot": get_active_robot(),
+        "robots": robots_catalog(),
+        "recording": get_recorder().status(),
         "robot_id": cap.robot_id,
         "display_name": cap.display_name,
         "frames_in": _stats.frames_in,
@@ -181,6 +186,8 @@ async def trigger_takeover(group: str | None = None) -> dict:
 async def trigger_set_gaze(pan: float, tilt: float) -> dict:
     """Absolute PTZ (0-180°) for bench tests and head-follow prep."""
     adapter = get_adapter()
+    if not isinstance(adapter, BoomyAdapter):
+        return {"success": False, "message": "PTZ not supported on this robot"}
     gaze = GazeFollower.absolute(pan, tilt)
     async with httpx.AsyncClient() as client:
         ok = await adapter.apply_gaze(gaze, client)
@@ -240,26 +247,36 @@ async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> N
     command = human.from_pose_frame(head, right, include_gaze=include_gaze)
     arbiter = get_arbiter()
     arbiter.update_human(command)
-    await arbiter.apply_resolved(http_client)
+    resolved = await arbiter.apply_resolved(http_client)
+    get_recorder().log_frame(
+        payload,
+        resolved.command,
+        sources=resolved.sources,
+        authority=arbiter.state.to_dict(),
+    )
 
 
 async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
     global _active_session, _stats, _watchdog_latched
-
-    if robot != "boomy":
-        await websocket.close(code=4004, reason=f"Robot '{robot}' not supported yet")
-        return
 
     if _active_session is not None:
         await websocket.close(code=4003, reason="Another teleop session is active")
         return
 
     await websocket.accept()
+
+    try:
+        bind_robot(robot)
+    except ValueError as exc:
+        await websocket.close(code=4004, reason=str(exc))
+        return
+
     _active_session = websocket
     _watchdog_latched = False
     reset_auto_timer()
     get_arbiter().takeover()
     _stats = SessionStats(robot=robot, client=websocket.client.host if websocket.client else None)
+    get_recorder().start_session(robot, client=_stats.client)
     logger.info("teleop session started robot=%s client=%s", robot, _stats.client)
 
     watchdog_task: asyncio.Task | None = None
@@ -315,6 +332,7 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
                 await force_auto_stop(client, reason="session_ended")
             else:
                 await get_adapter().e_stop(client)
+        get_recorder().end_session()
         _active_session = None
         _watchdog_latched = False
 

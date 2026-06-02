@@ -34,3 +34,4 @@ webapp/dist/
 tmp/
 *.bak
 .mcpb/
+data/teleop_recordings/

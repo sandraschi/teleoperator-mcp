@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     gaze_every_n_frames: int = 1
     gaze_min_delta_deg: float = 1.0
     default_robot: str = "boomy"
+    # Session recording (LeRobot-compatible JSONL, M4)
+    recording_enabled: bool = True
+    recording_dir: str = "data/teleop_recordings"
+    recording_fps: int = 30
     # AUTO safety (M3 nav stub)
     auto_max_duration_s: float = 10.0
     auto_warn_before_s: float = 3.0

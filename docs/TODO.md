@@ -28,7 +28,7 @@ Prove the data plane on real hardware before adding anything on top.
 - [x] Confirm the yahboom REST contract: `POST /api/v1/control/move` and `/api/v1/control/tool` `camera_set_pos` — verified 2026-06-02 (Boomy on Raspbot AP, `192.168.1.11`, ros + cmd_vel + video active).
 - [x] **HTTPS doc:** [HTTPS.md](HTTPS.md). Deployed: Tailscale Serve -> `https://goliath.tailfab45.ts.net/`, Vite `allowedHosts` fixed.
 - [ ] WebXR matrix on Pico 4 / Meta Quest. Checklist: [BRINGUP.md](BRINGUP.md) section 4.
-- [ ] End-to-end: headset pose -> drive + PTZ on Boomy; deadman, watchdog, single-session.
+- [ ] End-to-end: headset pose -> drive + PTZ on Boomy; deadman, watchdog, single-session. *(Bench: drive + PTZ verified 2026-06-02; headset sign-off pending Pico charge.)*
 - [ ] Measure latency (motion-to-command).
 
 **Acceptance:** Boomy drives from the Pico with trigger + stick; head moves PTZ; releasing trigger or dropping WS stops the robot within 300 ms.
@@ -42,7 +42,7 @@ The abstraction that makes the hardware ladder a driver swap.
 - [x] Define types: `ProducerCommand`, `RobotCapabilities`, actuator groups (`src/teleoperator_mcp/types.py`).
 - [x] `RobotAdapter` ABC + `BoomyAdapter` wrapping yahboom REST (`src/teleoperator_mcp/adapters/`).
 - [x] `HumanPoseProducer` maps WebXR frames to `ProducerCommand`; WS handler uses adapter (no direct mapper calls).
-- [ ] Wire adapter selection by `?robot=` route (only `boomy` today; stub for R1-A5-D).
+- [x] Wire adapter selection by `?robot=` route (`boomy` live; `r1-a5-d` stub returns 4004).
 
 ---
 
@@ -62,8 +62,9 @@ The abstraction that makes the hardware ladder a driver swap.
 
 ## Milestone 4 - Data flywheel (~1 day, no hardware)
 
-- [ ] Log every teleop session as a **LeRobot-format dataset** (pose + robot state + group commands + video frames where available).
-- [ ] Even Boomy demos (base motion only) get recorded, to prove the pipeline before manipulation hardware exists.
+- [x] Log every teleop session as **LeRobot-compatible JSONL** (pose + resolved commands + authority). See [LEROBOT.md](LEROBOT.md).
+- [ ] Parquet export + video frames (depends on M5 LiveKit return path).
+- [x] Boomy base-only demos are recorded to prove the pipeline before manipulation hardware exists.
 
 ---
 

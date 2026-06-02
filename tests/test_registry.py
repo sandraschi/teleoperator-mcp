@@ -1,0 +1,38 @@
+"""Robot adapter registry (M2)."""
+
+import pytest
+
+from teleoperator_mcp.adapters.boomy import BoomyAdapter
+from teleoperator_mcp.adapters.registry import create_adapter, list_robots
+from teleoperator_mcp.runtime import bind_robot, get_active_robot, get_adapter
+
+
+def test_list_robots_includes_boomy_and_planned() -> None:
+    catalog = list_robots()
+    assert "boomy" in catalog
+    assert catalog["boomy"]["status"] == "available"
+    assert catalog["boomy"]["has_base"] is True
+    assert "r1-a5-d" in catalog
+    assert catalog["r1-a5-d"]["status"] == "planned"
+
+
+def test_create_adapter_boomy() -> None:
+    adapter = create_adapter("boomy")
+    assert isinstance(adapter, BoomyAdapter)
+    assert adapter.capabilities.robot_id == "boomy"
+
+
+def test_create_adapter_unknown_raises() -> None:
+    with pytest.raises(ValueError, match="Unknown robot"):
+        create_adapter("not-a-robot")
+
+
+def test_create_adapter_planned_raises() -> None:
+    with pytest.raises(ValueError, match="planned"):
+        create_adapter("r1-a5-d")
+
+
+def test_bind_robot_switches_runtime() -> None:
+    bind_robot("boomy")
+    assert get_active_robot() == "boomy"
+    assert isinstance(get_adapter(), BoomyAdapter)
