@@ -23,7 +23,7 @@ export interface PoseFrame {
   v: 1;
   t: number;
   seq: number;
-  type?: "heartbeat" | "estop";
+  type?: "heartbeat" | "estop" | "takeover";
   head: HeadPose;
   right: ControllerPose;
   left: ControllerPose;
@@ -34,6 +34,7 @@ export interface HudState {
   rttMs: number | null;
   deadman: boolean;
   estop: boolean;
+  takeoverHeld: boolean;
   seq: number;
   panTilt: string;
 }
@@ -43,6 +44,7 @@ export const initialHudState = (): HudState => ({
   rttMs: null,
   deadman: false,
   estop: false,
+  takeoverHeld: false,
   seq: 0,
   panTilt: "--",
 });

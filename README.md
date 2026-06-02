@@ -89,9 +89,9 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 | `teleop_status` | shipped |
 | `teleop_configure` | shipped |
 | `teleop_estop` | shipped |
-| `teleop_set_mode` | planned (M3) |
+| `teleop_set_mode` | shipped (M3) |
+| `teleop_takeover` | shipped (M3) |
 | `teleop_task_dispatch` | planned |
-| `teleop_takeover` | planned |
 
 ---
 
@@ -110,7 +110,7 @@ Details and troubleshooting: **[docs/TAILSCALE_VIEWERS.md](docs/TAILSCALE_VIEWER
 | v0.1 | WebXR pose, safety, MCP estop | done |
 | M1 | Boomy + headset hardware bring-up | in progress |
 | M2 | Robot adapter + `ProducerCommand` | **adapter layer shipped** |
-| M3 | Arbiter + AUTO stub | planned |
+| M3 | Arbiter + AUTO stub | **shipped** (headset squeeze test pending M1) |
 | M4 | [LeRobot](docs/GLOSSARY.md#autonomy-and-learning-future-phases) episode logging | planned |
 | v1.5 | LiveKit video return | planned |
 

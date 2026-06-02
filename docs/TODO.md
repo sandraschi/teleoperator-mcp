@@ -25,11 +25,11 @@ Make the direct-teleop path solid enough to put on a real robot.
 
 Prove the data plane on real hardware before adding anything on top.
 
-- [ ] Confirm the yahboom REST contract is real: `POST /api/v1/control/move` (linear/angular/linear_y) and `/api/v1/control/tool` `camera_set_pos`. See [BRINGUP.md](BRINGUP.md) section 3.
-- [x] **HTTPS doc:** [HTTPS.md](HTTPS.md) (Tailscale Serve recommended). Deploy on Goliath still required before Pico test.
-- [ ] Pico Browser WebXR feature-matrix test on hardware (immersive-vr, local-floor, gamepad axes/buttons). Checklist: [BRINGUP.md](BRINGUP.md) section 4.
-- [ ] End-to-end: Pico pose -> drive + PTZ on Boomy; verify deadman, watchdog (<300 ms stop), single-session reject.
-- [ ] Measure real latency (motion-to-command, and later motion-to-photon once video lands).
+- [x] Confirm the yahboom REST contract: `POST /api/v1/control/move` and `/api/v1/control/tool` `camera_set_pos` — verified 2026-06-02 (Boomy on Raspbot AP, `192.168.1.11`, ros + cmd_vel + video active).
+- [x] **HTTPS doc:** [HTTPS.md](HTTPS.md). Deployed: Tailscale Serve -> `https://goliath.tailfab45.ts.net/`, Vite `allowedHosts` fixed.
+- [ ] WebXR matrix on Pico 4 / Meta Quest. Checklist: [BRINGUP.md](BRINGUP.md) section 4.
+- [ ] End-to-end: headset pose -> drive + PTZ on Boomy; deadman, watchdog, single-session.
+- [ ] Measure latency (motion-to-command).
 
 **Acceptance:** Boomy drives from the Pico with trigger + stick; head moves PTZ; releasing trigger or dropping WS stops the robot within 300 ms.
 
@@ -48,11 +48,12 @@ The abstraction that makes the hardware ladder a driver swap.
 
 ## Milestone 3 - Arbiter + AUTO stub (~1-2 days, no hardware)
 
-- [ ] `arbiter/` module: per-group authority vector, hard switching (DIRECT / AUTO only; SHARED deferred), takeover, e-stop. Single source of authority state shared by the WS handler and MCP tools.
-- [ ] MCP tools: `teleop_set_mode(group, mode)`, `teleop_takeover(group?)`, extend `teleop_status` with per-group owner + active producer.
-- [ ] Bumpless handoff: on takeover, seed human command from the producer's current output; on hand-back, force re-plan from current state.
-- [ ] Nav-stub AUTO producer on Boomy (drive to a saved waypoint) to exercise switching with no real autonomy.
-- [ ] Authority gated by capability (no `manip` group on Boomy; stricter takeover when `balance_risk`).
+- [x] `arbiter/` module: per-group authority vector, hard switching (DIRECT / AUTO only; SHARED deferred), takeover, e-stop. Single source of authority state shared by the WS handler and MCP tools.
+- [x] MCP tools: `teleop_set_mode(group, mode)`, `teleop_takeover(group?)`, extend `teleop_status` with per-group owner + active producer.
+- [x] Bumpless handoff: on takeover, seed human command from the producer's current output; on hand-back, force re-plan from current state (`nav_stub.reset_plan()`).
+- [x] Nav-stub AUTO producer on Boomy (slow forward + gentle sweep after 5s) to exercise switching with no real autonomy.
+- [x] Authority gated by capability (no `manip` group on Boomy; stricter takeover when `balance_risk` — deferred until legged platform).
+- [x] Squeeze in WebXR -> `takeover` WS message (M3); MCP `teleop_estop` remains hard stop.
 
 **Acceptance:** from Cursor, switch `base` to AUTO (Boomy drives to waypoint), squeeze in VR to take over instantly with no lurch, `teleop_estop` halts everything.
 

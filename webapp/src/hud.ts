@@ -16,6 +16,7 @@ export class XrHud {
       rttMs: null,
       deadman: false,
       estop: false,
+      takeoverHeld: false,
       seq: 0,
       panTilt: "--",
     };
@@ -58,7 +59,13 @@ export class XrHud {
     if (!ctx) return;
 
     const rtt = this.state.rttMs != null ? `${Math.round(this.state.rttMs)} ms` : "--";
-    const drive = this.state.estop ? "ESTOP" : this.state.deadman ? "DRIVE" : "idle";
+    const drive = this.state.estop
+      ? "ESTOP"
+      : this.state.takeoverHeld
+        ? "TAKEOVER"
+        : this.state.deadman
+          ? "DRIVE"
+          : "idle";
     const line = `WS ${rtt} | ${drive} | PTZ ${this.state.panTilt} | #${this.state.seq}`;
     if (line === this.lastLine) {
       return;
@@ -75,7 +82,7 @@ export class XrHud {
     ctx.arc(18, 32, 6, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = this.state.estop ? "#f87171" : "#e2e8f0";
+    ctx.fillStyle = this.state.estop ? "#f87171" : this.state.takeoverHeld ? "#fbbf24" : "#e2e8f0";
     ctx.font = "18px system-ui, sans-serif";
     ctx.fillText(line, 36, 38);
 

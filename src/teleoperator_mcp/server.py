@@ -15,7 +15,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastmcp import FastMCP
 
 from .config import cors_origins_list, settings
-from .ws.handler import disconnect_all, session_stats, teleop_websocket, trigger_estop
+from .ws.handler import (
+    disconnect_all,
+    session_stats,
+    teleop_websocket,
+    trigger_estop,
+    trigger_set_mode,
+    trigger_takeover,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -75,6 +82,19 @@ async def teleop_configure(
 async def teleop_estop() -> dict:
     """Hard stop: zero drive on all actuator groups. Operator/agent veto."""
     return await trigger_estop(reason="mcp")
+
+
+@mcp.tool()
+async def teleop_set_mode(group: str, mode: str) -> dict:
+    """Set actuator group authority: DIRECT (human) or AUTO (nav stub). Groups: base, gaze, manip."""
+    return await trigger_set_mode(group=group.lower(), mode=mode.upper())
+
+
+@mcp.tool()
+async def teleop_takeover(group: str | None = None) -> dict:
+    """Human reclaims authority on one group or all available groups. Clears estop latch."""
+    g = group.lower() if group else None
+    return await trigger_takeover(group=g)
 
 
 _mcp_http = mcp.http_app()

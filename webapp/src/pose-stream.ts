@@ -62,6 +62,11 @@ export class PoseStream {
     this.ws?.send(JSON.stringify({ v: 1, type: "estop", t: Date.now() }));
   }
 
+  sendTakeover(): void {
+    if (!this.connected) return;
+    this.ws?.send(JSON.stringify({ v: 1, type: "takeover", t: Date.now() }));
+  }
+
   private openSocket(): void {
     if (this.ws?.readyState === WebSocket.OPEN) return;
     this.ws = new WebSocket(this.url);

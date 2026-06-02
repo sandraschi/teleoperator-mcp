@@ -67,7 +67,7 @@ export class XrSession {
     this.stream.onAck = (ack) => {
       this.rttMs = performance.now() - this.lastSentAt;
       if (ack.watchdog) {
-        this.hud?.update({ estop: true });
+        this.hud?.update({ estop: true, takeoverHeld: false });
       }
     };
   }
@@ -119,27 +119,24 @@ export class XrSession {
     const sources = this.session?.inputSources ?? [];
     const right = readController(sources.find((s) => s.handedness === "right"));
     const left = readController(sources.find((s) => s.handedness === "left"));
-    const estop = squeezeActive(right) || squeezeActive(left);
+    const takeoverHeld = squeezeActive(right) || squeezeActive(left);
 
-    if (estop && !this.squeezeHeld) {
-      this.stream.sendEstop();
+    if (takeoverHeld && !this.squeezeHeld) {
+      this.stream.sendTakeover();
     }
-    this.squeezeHeld = estop;
+    this.squeezeHeld = takeoverHeld;
 
     if (time - this.lastSend >= SEND_INTERVAL_MS) {
       this.lastSend = time;
-      if (estop) {
-        this.stream.sendEstop();
-      } else {
-        this.lastSentAt = performance.now();
-        this.stream.sendFrame({ head, right, left });
-      }
+      this.lastSentAt = performance.now();
+      this.stream.sendFrame({ head, right, left });
     }
 
     this.hud?.update({
       rttMs: this.rttMs,
       deadman: (right.buttons.trigger ?? 0) > 0.5,
-      estop,
+      estop: false,
+      takeoverHeld,
       seq: this.stream.frameSeq,
       panTilt: `${Math.round(head.yaw * 57.3)} / ${Math.round(head.pitch * 57.3)}`,
     });

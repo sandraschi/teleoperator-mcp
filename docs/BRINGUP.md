@@ -6,6 +6,18 @@ Prerequisites: [HTTPS.md](HTTPS.md), [TODO.md](TODO.md) Milestone 1.
 
 ---
 
+## Raspbot AP + Tailscale (typical lab setup)
+
+| Device | Network | Role |
+|--------|---------|------|
+| **Goliath PC** | Join **Raspbot AP** WiFi (Pi often `192.168.1.11`) | yahboom-mcp rosbridge to Boomy |
+| **Pico / Meta** | **Tailscale** tailnet (WiFi can be home AP or phone hotspot) | Browser -> `https://goliath.*.ts.net` |
+| **Boomy Pi** | Raspbot AP host | Robot; not contacted directly by headset |
+
+Headsets do **not** need the Raspbot AP — they reach Goliath over Tailscale. Goliath must be on the AP (or routed to `192.168.1.11`) for drive commands to reach the Pi.
+
+---
+
 ## 1. Goliath stack
 
 One-shot (opens minimized windows for backend + webapp, enables Tailscale Serve):
@@ -100,10 +112,19 @@ Record headset model, browser version, and behavior notes (Quest has no easy dev
 Perform in order with Boomy on blocks or clear floor:
 
 1. **Deadman:** drive with trigger; release -> stop within one watchdog period.
-2. **Squeeze estop:** while idle and while driving.
+2. **Squeeze takeover (M3):** while `base` is AUTO (via `teleop_set_mode`), squeeze reclaims human drive — HUD shows **TAKEOVER**; trigger drives again with no lurch.
 3. **MCP estop:** from Cursor, call `teleop_estop` while session active.
 4. **Watchdog:** kill backend network briefly or stop sending pose (close tab) -> robot stops < 300 ms.
 5. **Reconnect:** toggle WiFi on headset briefly; HUD should go red then recover (WS backoff).
+
+### M3 without headset (Boomy on bench)
+
+From Cursor while backend is up and Goliath is on the Raspbot AP:
+
+1. `teleop_set_mode(group="base", mode="AUTO")` — Boomy should crawl forward slowly (nav stub).
+2. `teleop_status` — confirm `authority.base.mode` is `AUTO`, `owner` is `nav_stub`.
+3. `teleop_takeover()` — base returns to `DIRECT` / `human_pose`; robot stops if no WebXR session.
+4. `teleop_estop()` — hard stop; latch clears on next `teleop_takeover` or new WebXR session.
 
 ---
 
@@ -127,4 +148,4 @@ Milestone 1 complete when:
 - [ ] REST contract confirmed or mapper patched
 - [ ] HTTPS path documented with your actual Tailscale hostname
 
-Then proceed to Milestone 2 (adapter) in [TODO.md](TODO.md).
+Then proceed to Milestone 4 (LeRobot logging) in [TODO.md](TODO.md). Milestone 3 (arbiter) is software-complete; squeeze takeover sign-off is part of section 5 above.
