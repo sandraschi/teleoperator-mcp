@@ -2,36 +2,27 @@
 
 from __future__ import annotations
 
-import time
-
+from ..config import settings
 from ..types import BaseCommand, ProducerCommand
 
 
 class NavStubProducer:
-    """Placeholder autonomy: constant slow forward until takeover (M3 acceptance stub)."""
+    """Placeholder autonomy: constant slow forward only (no turns — furniture safety)."""
 
     producer_id = "nav_stub"
 
-    def __init__(self, linear: float = 0.12, angular: float = 0.0) -> None:
-        self.linear = linear
-        self.angular = angular
-        self._started_at = time.monotonic()
+    def __init__(self, linear: float | None = None, angular: float | None = None) -> None:
+        self.linear = settings.nav_stub_linear if linear is None else linear
+        self.angular = settings.nav_stub_angular if angular is None else angular
 
     def reset_plan(self) -> None:
-        """Hand-back to AUTO: replan from current state (fresh timer)."""
-        self._started_at = time.monotonic()
+        """Hand-back to AUTO: replan from current state (no-op for forward-only stub)."""
+        return
 
     def tick(self) -> ProducerCommand:
-        elapsed = time.monotonic() - self._started_at
-        # Gentle sweep after 5s to prove switching without Nav2
-        ang = self.angular
-        lin = self.linear
-        if elapsed > 5.0:
-            ang = 0.15 if int(elapsed * 2) % 2 == 0 else -0.15
-            lin = self.linear * 0.5
         return ProducerCommand(
             producer_id=self.producer_id,
-            base=BaseCommand(linear=lin, angular=ang, linear_y=0.0),
+            base=BaseCommand(linear=self.linear, angular=self.angular, linear_y=0.0),
             gaze=None,
             manip=None,
         )

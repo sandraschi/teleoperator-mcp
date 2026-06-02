@@ -13,6 +13,14 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from ..config import settings
 from ..runtime import get_adapter, get_arbiter
+from ..safety import (
+    arm_auto_timer,
+    auto_safety_tick,
+    force_auto_stop,
+    reset_auto_timer,
+    speak_auto_start_warning,
+)
+from ..speech import speak_warning
 
 logger = logging.getLogger("teleoperator_mcp.ws")
 
@@ -35,9 +43,16 @@ _stats = SessionStats()
 _watchdog_latched = False
 
 
+def session_active() -> bool:
+    return _active_session is not None
+
+
 def session_stats() -> dict:
     arbiter = get_arbiter()
     cap = get_adapter().capabilities
+    from ..safety import auto_elapsed_s
+
+    elapsed = auto_elapsed_s()
     return {
         "active": _active_session is not None,
         "robot": _stats.robot,
@@ -49,12 +64,15 @@ def session_stats() -> dict:
         "client": _stats.client,
         "watchdog_latched": _watchdog_latched,
         "estop_count": _stats.estop_count,
+        "auto_elapsed_s": round(elapsed, 1) if elapsed is not None else None,
+        "auto_max_duration_s": settings.auto_max_duration_s,
+        "auto_require_webxr": settings.auto_require_webxr,
         **arbiter.status(),
     }
 
 
 async def ensure_auto_loop() -> None:
-    """Background tick when any group is AUTO (MCP-only tests without WebXR frames)."""
+    """Background tick when any group is AUTO."""
     global _auto_task
     arbiter = get_arbiter()
     if not arbiter.any_auto():
@@ -63,12 +81,12 @@ async def ensure_auto_loop() -> None:
         return
 
     async def _loop() -> None:
-        arbiter = get_arbiter()
-        adapter = get_adapter()
-        while arbiter.any_auto():
-            if not arbiter.state.estop_latched:
-                async with httpx.AsyncClient() as client:
-                    await arbiter.apply_resolved(client)
+        while get_arbiter().any_auto():
+            async with httpx.AsyncClient() as client:
+                if await auto_safety_tick(client):
+                    break
+                if not get_arbiter().state.estop_latched:
+                    await get_arbiter().apply_resolved(client)
             await asyncio.sleep(0.1)
         logger.info("auto loop stopped (no AUTO groups)")
 
@@ -79,11 +97,14 @@ async def ensure_auto_loop() -> None:
 async def trigger_estop(reason: str = "mcp") -> dict:
     """Hard stop via arbiter. Callable from MCP tools and WS handler."""
     global _stats
+    reset_auto_timer()
     arbiter = get_arbiter()
     async with httpx.AsyncClient() as client:
         await arbiter.estop(client)
     _stats.estop_count += 1
     logger.warning("e-stop triggered (%s)", reason)
+    if reason in ("mcp", "user_estop"):
+        await speak_warning("Emergency stop. Robot halted.")
     return {
         "success": True,
         "message": f"E-stop sent ({reason})",
@@ -92,21 +113,50 @@ async def trigger_estop(reason: str = "mcp") -> dict:
     }
 
 
-async def trigger_set_mode(group: str, mode: str) -> dict:
+async def trigger_set_mode(
+    group: str,
+    mode: str,
+    *,
+    confirm_bench: bool = False,
+) -> dict:
     if mode not in ("DIRECT", "AUTO"):
         return {"success": False, "message": f"Invalid mode '{mode}' — use DIRECT or AUTO"}
     if group not in ("base", "gaze", "manip"):
         return {"success": False, "message": f"Invalid group '{group}'"}
+
+    if mode == "AUTO" and settings.auto_require_webxr and not session_active():
+        if not confirm_bench:
+            return {
+                "success": False,
+                "message": (
+                    "AUTO requires an active WebXR session, or confirm_bench=true "
+                    "(robot on blocks only, timed auto-stop)."
+                ),
+            }
+
     arbiter = get_arbiter()
     try:
         result = arbiter.set_mode(group, mode)  # type: ignore[arg-type]
     except ValueError as exc:
         return {"success": False, "message": str(exc)}
+
+    if mode == "AUTO" and group == "base":
+        arm_auto_timer()
+        await speak_auto_start_warning(bench=confirm_bench and not session_active())
+    elif mode == "DIRECT":
+        reset_auto_timer()
+
     await ensure_auto_loop()
-    return {"success": True, "message": f"{group} -> {mode}", **result}
+    return {
+        "success": True,
+        "message": f"{group} -> {mode}",
+        "confirm_bench": confirm_bench,
+        **result,
+    }
 
 
 async def trigger_takeover(group: str | None = None) -> dict:
+    reset_auto_timer()
     arbiter = get_arbiter()
     try:
         result = arbiter.takeover(group)  # type: ignore[arg-type]
@@ -136,11 +186,16 @@ async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> N
     if msg_type == "heartbeat":
         return
     if msg_type == "estop":
+        reset_auto_timer()
         await get_arbiter().estop(http_client)
         _stats.estop_count += 1
         return
     if msg_type == "takeover":
+        reset_auto_timer()
         get_arbiter().takeover()
+        return
+
+    if await auto_safety_tick(http_client):
         return
 
     head = payload.get("head") or {}
@@ -168,6 +223,7 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
     await websocket.accept()
     _active_session = websocket
     _watchdog_latched = False
+    reset_auto_timer()
     get_arbiter().takeover()
     _stats = SessionStats(robot=robot, client=websocket.client.host if websocket.client else None)
     logger.info("teleop session started robot=%s client=%s", robot, _stats.client)
@@ -189,7 +245,9 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
             _watchdog_latched = True
             _stats.watchdog_latched = True
             logger.warning("watchdog: no frames - e-stop (latched)")
+            reset_auto_timer()
             await arbiter.estop(http_client)
+            await speak_warning("Watchdog stop. No headset frames. Robot halted.")
             await _notify_client({"ok": False, "watchdog": True})
 
     try:
@@ -216,9 +274,13 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
     finally:
         if watchdog_task:
             watchdog_task.cancel()
+        reset_auto_timer()
         get_arbiter().takeover()
-        async with httpx.AsyncClient() as http_client:
-            await get_adapter().e_stop(http_client)
+        async with httpx.AsyncClient() as client:
+            if get_arbiter().any_auto():
+                await force_auto_stop(client, reason="session_ended")
+            else:
+                await get_adapter().e_stop(client)
         _active_session = None
         _watchdog_latched = False
 

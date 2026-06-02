@@ -54,6 +54,7 @@ The abstraction that makes the hardware ladder a driver swap.
 - [x] Nav-stub AUTO producer on Boomy (slow forward + gentle sweep after 5s) to exercise switching with no real autonomy.
 - [x] Authority gated by capability (no `manip` group on Boomy; stricter takeover when `balance_risk` — deferred until legged platform).
 - [x] Squeeze in WebXR -> `takeover` WS message (M3); MCP `teleop_estop` remains hard stop.
+- [x] AUTO safety: 10 s max duration, WebXR required (or `confirm_bench`), lower crawl speed, forward-only stub, spoken warnings via speech-mcp.
 
 **Acceptance:** from Cursor, switch `base` to AUTO (Boomy drives to waypoint), squeeze in VR to take over instantly with no lurch, `teleop_estop` halts everything.
 

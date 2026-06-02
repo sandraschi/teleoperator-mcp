@@ -121,10 +121,12 @@ Perform in order with Boomy on blocks or clear floor:
 
 From Cursor while backend is up and Goliath is on the Raspbot AP:
 
-1. `teleop_set_mode(group="base", mode="AUTO")` — Boomy should crawl forward slowly (nav stub).
-2. `teleop_status` — confirm `authority.base.mode` is `AUTO`, `owner` is `nav_stub`.
-3. `teleop_takeover()` — base returns to `DIRECT` / `human_pose`; robot stops if no WebXR session.
-4. `teleop_estop()` — hard stop; latch clears on next `teleop_takeover` or new WebXR session.
+1. `teleop_set_mode(group="base", mode="AUTO", confirm_bench=true)` — only on **blocks**; 10 s max, spoken warnings, forward crawl at 0.06 m/s.
+2. `teleop_status` — confirm `authority.base.mode` is `AUTO`, check `auto_elapsed_s`.
+3. `teleop_takeover()` — base returns to `DIRECT`; robot stops.
+4. `teleop_estop()` — hard stop; spoken "Emergency stop."
+
+**Restart backend:** `scripts/restart-backend.ps1` — speaks a 5-second warning before restart.
 
 ---
 

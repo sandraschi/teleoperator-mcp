@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     pan_gain: float = 60.0
     tilt_gain: float = 45.0
     default_robot: str = "boomy"
+    # AUTO safety (M3 nav stub)
+    auto_max_duration_s: float = 10.0
+    auto_warn_before_s: float = 3.0
+    auto_require_webxr: bool = True
+    nav_stub_linear: float = 0.06
+    nav_stub_angular: float = 0.0
+    # Spoken warnings via speech-mcp (port 10909); SAPI fallback if unreachable
+    speech_enabled: bool = True
+    speech_mcp_url: str = "http://127.0.0.1:10909"
+    speech_provider: str = "windows"
     # Comma-separated browser origins (WebXR dev + Pico/Tailscale). No wildcard + credentials.
     cors_origins: str = (
         "http://localhost:10900,"

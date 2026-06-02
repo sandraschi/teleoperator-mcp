@@ -85,9 +85,12 @@ async def teleop_estop() -> dict:
 
 
 @mcp.tool()
-async def teleop_set_mode(group: str, mode: str) -> dict:
-    """Set actuator group authority: DIRECT (human) or AUTO (nav stub). Groups: base, gaze, manip."""
-    return await trigger_set_mode(group=group.lower(), mode=mode.upper())
+async def teleop_set_mode(group: str, mode: str, confirm_bench: bool = False) -> dict:
+    """Set actuator group authority: DIRECT (human) or AUTO (nav stub). Groups: base, gaze, manip.
+
+    AUTO on base requires an active WebXR session unless confirm_bench=true (blocks only, timed stop).
+    """
+    return await trigger_set_mode(group=group.lower(), mode=mode.upper(), confirm_bench=confirm_bench)
 
 
 @mcp.tool()
