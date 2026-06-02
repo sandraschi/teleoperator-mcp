@@ -1,0 +1,13 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "name": "teleoperator-mcp",
+  "description": "WebXR teleoperation gateway: VR pose streaming to fleet robots. Pico browser client with in-headset HUD; MCP for session config and status.",
+  "type": "mcp_server",
+  "status": "alpha",
+  "framework": "FastMCP 3.2",
+  "version": "0.1.0",
+  "icon": "gamepad",
+  "homeUrl": "https://github.com/sandraschi/teleoperator-mcp",
+  "transport": ["stdio", "http"],
+  "keywords": ["webxr", "teleoperation", "pico", "robotics", "livekit", "boomy", "mcp"]
+}
