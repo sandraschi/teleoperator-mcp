@@ -25,8 +25,8 @@ Status legend: **[now]** shipped in v0.1 - **[next]** near-term (v0.2-v0.5) - **
 - `ws/handler.py` - single-session WebSocket handler, latched watchdog, estop message type, `trigger_estop()`. **[now]**
 - `mappers/boomy.py` - `BoomyMapper`: head -> PTZ, stick -> cmd_vel; `api_base` reads live settings. **[now]**
 - `arbiter/` - authority arbiter, per-group ownership, takeover, bumpless handoff. **[next, does not exist]**
-- `adapters/` - robot adapter interface + capability descriptor (`boomy`, later `r1a5d`). **[next, does not exist]**
-- `producers/` - pluggable command sources: human pose-mapper, nav/gait stub, VLA client. **[next/later, does not exist]**
+- `adapters/` - `RobotAdapter`, `BoomyAdapter`, `RobotCapabilities`. **[now]**
+- `producers/` - `HumanPoseProducer` (human pose-mapper). Nav/VLA producers **[next/later]**
 
 ---
 

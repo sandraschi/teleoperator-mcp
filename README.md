@@ -1,10 +1,19 @@
 # Teleoperator MCP
 
-WebXR teleoperation gateway for the MCP fleet, evolving into a **dual-mode teleop + telesupervision** stack. Stream head and controller pose from a **Pico 4 browser** to Goliath, map to robot commands, and (target state) hand off to an autonomous policy while the operator becomes a supervisor. Return camera video over LiveKit (v1.5).
+WebXR teleoperation gateway for the MCP fleet: stream VR pose from **Pico 4** or **Meta Quest** to Goliath, drive fleet robots (Boomy first), and evolve toward **dual-mode telesupervision** (human teleop ↔ autonomous policy with human veto). Video return via LiveKit (v1.5).
 
-[![FastMCP 3.2](https://img.shields.io/badge/FastMCP-3.2-7c5cfc?style=flat-square)](https://github.com/jlowin/fastmcp)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776ab?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![status: alpha](https://img.shields.io/badge/status-alpha-f59e0b?style=flat-square)](#current-status)
+<p align="center">
+  <a href="https://github.com/sandraschi/teleoperator-mcp/actions"><img src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white" alt="CI"></a>
+  <a href="https://github.com/jlowin/fastmcp"><img src="https://img.shields.io/badge/FastMCP-3.2-7c5cfc?style=flat-square" alt="FastMCP 3.2"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12+"></a>
+  <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite 6"></a>
+  <a href="https://threejs.org/"><img src="https://img.shields.io/badge/Three.js-WebXR-000000?style=flat-square&logo=three.js&logoColor=white" alt="Three.js WebXR"></a>
+  <a href="https://tailscale.com/"><img src="https://img.shields.io/badge/Tailscale-Serve-242424?style=flat-square&logo=tailscale&logoColor=white" alt="Tailscale Serve"></a>
+  <img src="https://img.shields.io/badge/status-alpha-f59e0b?style=flat-square" alt="status alpha">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License"></a>
+</p>
+
+**New here?** Read the **[glossary](docs/GLOSSARY.md)** for LeRobot, VLA, arbiter, and other terms used in the docs.
 
 ---
 
@@ -12,25 +21,30 @@ WebXR teleoperation gateway for the MCP fleet, evolving into a **dual-mode teleo
 
 Two surfaces, two latency classes, one gateway:
 
-- **VR client (webapp on the Pico):** captures head + controller pose, renders an in-headset HUD, displays return video. Real-time, ~30 Hz.
-- **MCP server (the supervisor interface):** session config, status, gains, and — in the target architecture — mode switching, task dispatch, takeover, and e-stop. Cold path, seconds.
+| Surface | Role | Latency |
+|---------|------|---------|
+| **Webapp (WebXR)** | VR client on Pico / Meta — pose, HUD, video | ~30 Hz WebSocket |
+| **MCP server** | Supervisor tools — status, configure, estop, (future) mode switch | seconds |
+| **Robot adapter** | Maps standard commands to yahboom-mcp REST (Boomy today) | same hot path |
 
-The 30 Hz pose stream runs over a **WebSocket**, never through MCP tool calls. The webapp is not an admin dashboard bolted onto VR; it **is** the VR client.
+Pose **never** traverses MCP tool calls. The webapp **is** the VR client, not a separate admin dashboard.
 
-The larger arc (direct teleop <-> autonomy, operator as telesupervisor) is specified in **[docs/DUAL_MODE_ARCHITECTURE.md](docs/DUAL_MODE_ARCHITECTURE.md)**. v0.1 below is the direct-teleop foundation that arc refactors on top of.
+Target architecture (arbiter, per-group authority, LeRobot logging, VLA producers): **[docs/DUAL_MODE_ARCHITECTURE.md](docs/DUAL_MODE_ARCHITECTURE.md)**.
 
 ---
 
-## Documentation map
+## Documentation
 
 | Doc | Contents |
 |-----|----------|
-| **[docs/PRD.md](docs/PRD.md)** | v1 product spec: pose schema, HUD, safety, ports, env |
-| **[docs/DUAL_MODE_ARCHITECTURE.md](docs/DUAL_MODE_ARCHITECTURE.md)** | The target architecture: arbiter, per-group authority, robot adapter, hardware ladder, controller-swap, perception split |
-| **[docs/STACK.md](docs/STACK.md)** | Full technology stack across all layers, present and planned |
-| **[docs/HTTPS.md](docs/HTTPS.md)** | Pico HTTPS: Tailscale Serve vs self-signed |
-| **[docs/BRINGUP.md](docs/BRINGUP.md)** | Milestone 1 bench checklist (Boomy + Pico) |
-| **[docs/TODO.md](docs/TODO.md)** | Concrete milestone plan with realistic timelines and fleet-compliance gaps |
+| [docs/GLOSSARY.md](docs/GLOSSARY.md) | **LeRobot, VLA, arbiter, WebXR**, fleet terms |
+| [docs/PRD.md](docs/PRD.md) | v1 product spec |
+| [docs/WEBXR.md](docs/WEBXR.md) | In-repo VR client (no Pico SDK) |
+| [docs/TAILSCALE_VIEWERS.md](docs/TAILSCALE_VIEWERS.md) | **Pico / Meta + Tailscale** — setup and pitfalls |
+| [docs/HTTPS.md](docs/HTTPS.md) | Tailscale Serve on Goliath |
+| [docs/BRINGUP.md](docs/BRINGUP.md) | Milestone 1 hardware checklist |
+| [docs/STACK.md](docs/STACK.md) | Full technology stack |
+| [docs/TODO.md](docs/TODO.md) | Milestone plan |
 
 ---
 
@@ -40,109 +54,65 @@ The larger arc (direct teleop <-> autonomy, operator as telesupervisor) is speci
 git clone https://github.com/sandraschi/teleoperator-mcp
 cd teleoperator-mcp
 just bootstrap
-just serve    # backend :10901
-just web      # webapp  :10900
+.\scripts\m1-up.ps1   # backend + webapp + Tailscale Serve
 ```
 
-Open `https://<goliath>:10900` on the Pico browser, then **Enter VR**. WebXR without a headset: open the webapp in Chrome with the [WebXR Emulator](https://github.com/MozillaReality/WebXREmulatorExtension) extension.
+Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 
 ---
 
-## Stack (v0.1)
+## Stack (v0.2)
 
-| Layer | Technology | Port | Role |
-|-------|------------|------|------|
-| **Webapp** | Vite + TypeScript + Three.js WebXR | 10900 | Pico client: pose capture, in-headset HUD, video plane |
-| **Backend** | FastAPI + FastMCP 3.2 + WebSocket | 10901 | Pose ingress, mapping, watchdog, MCP tools |
-| **Robot driver** | [yahboom-mcp](https://github.com/sandraschi/yahboom-mcp) REST | 10892 | `/cmd_vel`, PTZ servos |
-| **Video (v1.5)** | [myconf](https://github.com/sandraschi/myconf) LiveKit | 15580 | Robot camera -> headset |
-
-Full stack including the planned arbiter, VLA producers, perception, and hardware: **[docs/STACK.md](docs/STACK.md)**.
+| Layer | Technology | Port |
+|-------|------------|------|
+| Webapp | Vite + Three.js WebXR | 10900 |
+| Backend | FastAPI + FastMCP + WebSocket | 10901 |
+| Adapter | `BoomyAdapter` → [yahboom-mcp](https://github.com/sandraschi/yahboom-mcp) | 10892 |
+| Video (planned) | [myconf](https://github.com/sandraschi/myconf) LiveKit | 15580 |
 
 ```
-+------------- Pico 4 Browser -------------+
-|  webapp (10900 HTTPS)                    |
-|    2D landing -> Enter VR                |
-|    WebXR: pose @ 30Hz --wss--+           |
-|    chin HUD (non-blocking)   |           |
-|    video plane (v1.5 LiveKit)|           |
-+------------------------------|-----------+
-                               v
-+------------- Goliath --------------------+
-|  teleoperator-mcp (10901)                |
-|    WS /ws/teleop -> mappers/boomy        |
-|    MCP /mcp -> teleop_status, configure  |
-+------------------------------|-----------+
-                               v
-+------------- Boomy Pi -------------------+
-|  yahboom-mcp -> rosbridge -> /cmd_vel    |
-+------------------------------------------+
+  Pico / Meta Quest (Tailscale + Browser)
+           |  HTTPS / WSS
+           v
+  Goliath: teleoperator-mcp (adapter + producer + MCP)
+           |
+           v
+  Boomy Pi: yahboom-mcp -> /cmd_vel, PTZ
 ```
 
 ---
 
 ## MCP tools
 
-| Tool | Status | Description |
-|------|--------|-------------|
-| `teleop_status` | shipped | Active session, frame count, robot target, watchdog config |
-| `teleop_configure` | shipped (see known bug) | Runtime gains (`max_linear`, `pan_gain`, `yahboom_api_url`, ...) |
-| `teleop_estop` | shipped | Hard stop, all actuator groups (operator/agent veto) |
-| `teleop_set_mode` | planned | DIRECT or AUTO per actuator group (SHARED deferred) |
-| `teleop_task_dispatch` | planned | Hand a language goal to the active manipulation policy |
-| `teleop_takeover` | planned | Human reclaims authority immediately |
+| Tool | Status |
+|------|--------|
+| `teleop_status` | shipped |
+| `teleop_configure` | shipped |
+| `teleop_estop` | shipped |
+| `teleop_set_mode` | planned (M3) |
+| `teleop_task_dispatch` | planned |
+| `teleop_takeover` | planned |
 
 ---
 
-## Environment
+## Tailscale on viewers
 
-| Variable | Default |
-|----------|---------|
-| `TELEOP_YAHBOOM_API_URL` | `http://127.0.0.1:10892` |
-| `TELEOP_WATCHDOG_MS` | `300` |
-| `TELEOP_MAX_LINEAR` | `0.3` |
-| `TELEOP_MAX_ANGULAR` | `0.8` |
-| `TELEOP_PAN_GAIN` | `60` |
-| `TELEOP_TILT_GAIN` | `45` |
-| `TELEOP_CORS_ORIGINS` | localhost dev URLs (comma-separated) |
+**No fundamental problem** — install Tailscale on Pico or Meta Quest, same tailnet as Goliath, open the `https://*.ts.net` URL. Headsets do not talk to Boomy's LAN IP; Goliath bridges via yahboom-mcp.
 
-Full list: [docs/PRD.md](docs/PRD.md) §13.
+Details and troubleshooting: **[docs/TAILSCALE_VIEWERS.md](docs/TAILSCALE_VIEWERS.md)**.
 
 ---
 
-## Safety
+## Roadmap
 
-- **Deadman:** drive only while the right trigger is held (> 0.5)
-- **Squeeze (either hand):** client estop; drive frames suppressed while held
-- **MCP `teleop_estop`:** hard stop from Cursor/agents
-- **Watchdog:** no pose/heartbeat for `TELEOP_WATCHDOG_MS` (300 ms) -> latched e-stop until frames resume
-- **Single session:** one active WebSocket at a time (second rejected with 4003)
-- **Planned:** per-group takeover via arbiter (squeeze redefined in M3). See [docs/TODO.md](docs/TODO.md).
-
----
-
-## Current status
-
-Honest state, not aspiration:
-
-- **Working:** FastAPI + FastMCP + WebSocket gateway, `BoomyMapper` (head -> PTZ, stick -> drive), single-session WS handler with latched watchdog and e-stop-on-disconnect, WebXR client (pose loop, squeeze estop, WS reconnect, throttled chin HUD), MCP tools (`teleop_status`, `teleop_configure`, `teleop_estop`).
-- **Unverified on hardware:** the yahboom REST contract, Pico Browser WebXR feature matrix, end-to-end latency.
-- **Not built:** the arbiter, per-group authority, robot adapter, autonomy producers, LeRobot logging. These are the [DUAL_MODE_ARCHITECTURE](docs/DUAL_MODE_ARCHITECTURE.md) target.
-
----
-
-## Roadmap (summary)
-
-| Phase | Scope | Gated by |
-|-------|-------|----------|
-| **v0.1** | WebXR pose -> Boomy drive + PTZ, chin HUD, MCP status + estop | M0 done; M1 hardware next |
-| **v0.3** | Robot adapter + capability descriptor; mapper becomes a producer | none |
-| **v0.4** | Arbiter (hard per-group switching, takeover, estop) + nav-stub AUTO producer | none |
-| **v0.5** | LeRobot episode logging (the data flywheel) | none |
-| **v1.5** | LiveKit video return (flat mono) | myconf |
-| **v2** | Wheeled dual-arm rung: VLA producer, gripper manipulation, "open fridge, get can" | R1-A5-D hardware |
-
-Full plan with timelines: **[docs/TODO.md](docs/TODO.md)**.
+| Phase | Scope | Status |
+|-------|-------|--------|
+| v0.1 | WebXR pose, safety, MCP estop | done |
+| M1 | Boomy + headset hardware bring-up | in progress |
+| M2 | Robot adapter + `ProducerCommand` | **adapter layer shipped** |
+| M3 | Arbiter + AUTO stub | planned |
+| M4 | [LeRobot](docs/GLOSSARY.md#autonomy-and-learning-future-phases) episode logging | planned |
+| v1.5 | LiveKit video return | planned |
 
 ---
 
@@ -151,7 +121,8 @@ Full plan with timelines: **[docs/TODO.md](docs/TODO.md)**.
 ```powershell
 just lint
 just test
-just dev     # backend reload
+just serve
+just web
 ```
 
 ---

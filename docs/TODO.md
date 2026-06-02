@@ -39,9 +39,10 @@ Prove the data plane on real hardware before adding anything on top.
 
 The abstraction that makes the hardware ladder a driver swap.
 
-- [ ] Define `adapters/` interface: command groups (`base`, `manip`, `gaze`) + `RobotCapabilities` (`has_base`, `has_legs`, `balance_risk`, `has_arms`, `hand_type`, `programmable`).
-- [ ] Implement `BoomyAdapter` wrapping the existing REST calls. No behaviour change.
-- [ ] Make `BoomyMapper` emit a `ProducerCommand` keyed by group instead of calling the robot directly.
+- [x] Define types: `ProducerCommand`, `RobotCapabilities`, actuator groups (`src/teleoperator_mcp/types.py`).
+- [x] `RobotAdapter` ABC + `BoomyAdapter` wrapping yahboom REST (`src/teleoperator_mcp/adapters/`).
+- [x] `HumanPoseProducer` maps WebXR frames to `ProducerCommand`; WS handler uses adapter (no direct mapper calls).
+- [ ] Wire adapter selection by `?robot=` route (only `boomy` today; stub for R1-A5-D).
 
 ---
 

@@ -11,8 +11,9 @@ from dataclasses import dataclass, field
 import httpx
 from fastapi import WebSocket, WebSocketDisconnect
 
+from ..adapters.boomy import BoomyAdapter
 from ..config import settings
-from ..mappers.boomy import BoomyMapper
+from ..producers.human_pose import HumanPoseProducer
 
 logger = logging.getLogger("teleoperator_mcp.ws")
 
@@ -30,14 +31,18 @@ class SessionStats:
 
 _active_session: WebSocket | None = None
 _stats = SessionStats()
-_mapper = BoomyMapper()
+_adapter = BoomyAdapter()
+_producer = HumanPoseProducer(_adapter)
 _watchdog_latched = False
 
 
 def session_stats() -> dict:
+    cap = _adapter.capabilities
     return {
         "active": _active_session is not None,
         "robot": _stats.robot,
+        "robot_id": cap.robot_id,
+        "display_name": cap.display_name,
         "frames_in": _stats.frames_in,
         "last_frame_at": _stats.last_frame_at,
         "uptime_s": round(time.time() - _stats.connected_at, 1),
@@ -48,10 +53,10 @@ def session_stats() -> dict:
 
 
 async def trigger_estop(reason: str = "mcp") -> dict:
-    """Hard stop via yahboom REST. Callable from MCP tools and WS handler."""
+    """Hard stop via robot adapter. Callable from MCP tools and WS handler."""
     global _stats
     async with httpx.AsyncClient() as client:
-        await _mapper.e_stop(client)
+        await _adapter.e_stop(client)
     _stats.estop_count += 1
     logger.warning("e-stop triggered (%s)", reason)
     return {
@@ -82,23 +87,24 @@ async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> N
     if msg_type == "heartbeat":
         return
     if msg_type == "estop":
-        await _mapper.e_stop(http_client)
+        await _adapter.e_stop(http_client)
         _stats.estop_count += 1
         return
 
     head = payload.get("head") or {}
     right = payload.get("right") or {}
 
-    drive = _mapper.map_drive(right)
-    await _mapper.apply_drive(drive, http_client)
-
-    if _stats.frames_in % 3 == 0:
-        ptz = _mapper.map_head(head)
-        await _mapper.apply_ptz(ptz, http_client)
+    include_gaze = _stats.frames_in % 3 == 0
+    command = _producer.from_pose_frame(head, right, include_gaze=include_gaze)
+    await _adapter.apply(command, http_client)
 
 
 async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
     global _active_session, _stats, _watchdog_latched
+
+    if robot != "boomy":
+        await websocket.close(code=4004, reason=f"Robot '{robot}' not supported yet")
+        return
 
     if _active_session is not None:
         await websocket.close(code=4003, reason="Another teleop session is active")
@@ -126,7 +132,7 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
             _watchdog_latched = True
             _stats.watchdog_latched = True
             logger.warning("watchdog: no frames - e-stop (latched)")
-            await _mapper.e_stop(http_client)
+            await _adapter.e_stop(http_client)
             await _notify_client({"ok": False, "watchdog": True})
 
     try:
@@ -147,7 +153,7 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
         if watchdog_task:
             watchdog_task.cancel()
         async with httpx.AsyncClient() as http_client:
-            await _mapper.e_stop(http_client)
+            await _adapter.e_stop(http_client)
         _active_session = None
         _watchdog_latched = False
 

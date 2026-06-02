@@ -31,6 +31,8 @@ just web      # webapp  :10900 (proxies /api and /ws to backend)
 
 The webapp must be the HTTPS entrypoint so `/ws` and `/api` share the same origin as the page (required for WSS without mixed-content blocks).
 
+**Vite 6:** add your Tailscale hostname to `webapp/vite.config.ts` `server.allowedHosts` (repo ships `.ts.net` suffix). Restart `npm run dev` after changing it.
+
 ---
 
 ## Option A: Tailscale Serve (recommended)
