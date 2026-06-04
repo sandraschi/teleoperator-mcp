@@ -8,7 +8,8 @@
     "moduleResolution": "bundler",
     "strict": true,
     "noEmit": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "jsx": "react-jsx"
   },
   "include": ["src"]
 }

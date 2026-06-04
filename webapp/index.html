@@ -4,27 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Teleoperator — Boomy VR</title>
-    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="shell">
-      <header>
-        <h1>Teleoperator</h1>
-        <p class="subtitle">WebXR → Boomy · chin HUD stays out of the way</p>
-      </header>
-      <main>
-        <label>
-          Robot
-          <select id="robot-select">
-            <option value="boomy" selected>Boomy (Yahboom)</option>
-          </select>
-        </label>
-        <button id="enter-vr" type="button" disabled>Enter VR</button>
-        <p id="xr-support" class="hint"></p>
-        <dl id="debug-stats" class="debug"></dl>
-      </main>
-    </div>
+    <div id="root"></div>
     <canvas id="xr-canvas"></canvas>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

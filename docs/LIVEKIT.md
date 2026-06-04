@@ -116,6 +116,8 @@ For **Pico on Tailscale**, add (replace with your hostname):
 TELEOP_LIVEKIT_PUBLIC_URL=wss://goliath.tailfab45.ts.net:15580
 ```
 
+`webapp/start.ps1` sets this automatically from `tailscale serve status` when unset.
+
 Publisher uses `LIVEKIT_URL` (localhost). Browser uses `PUBLIC_URL` (Tailscale). **Do not** point the publisher at a URL the Pi cannot reach via loopback.
 
 Restart backend after editing `.env`.
@@ -193,8 +195,9 @@ Read the symptom, not the stack trace first.
 
 1. Is LiveKit up? `docker ps` in myconf
 2. Do keys match `.env` vs `livekit.yaml`?
-3. Run `uv sync` in teleoperator-mcp (needs `livekit` Python packages)
-4. Read `last_error` in `/api/v1/livekit/status`
+3. **STUN format (2026-06-04):** `livekit.yaml` must use `stun.l.google.com:19302` — **not** `stun:stun.l.google.com:19302` (causes HTTP 500 on `/rtc`). Rebuild: `docker compose -f docker-compose.yaml up -d --build livekit`
+4. Run `uv sync` in teleoperator-mcp (needs `livekit` Python packages)
+5. Read `last_error` in `/api/v1/livekit/status`
 
 ### “frames_published stays 0”
 

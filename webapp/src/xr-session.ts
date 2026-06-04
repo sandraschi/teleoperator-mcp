@@ -95,6 +95,7 @@ export class XrSession {
     this.hud = null;
     this.renderer.setAnimationLoop(null);
     document.body.classList.remove("in-xr");
+    document.body.dispatchEvent(new CustomEvent("teleop-xr-ended"));
     this.session?.end();
     this.session = null;
   }

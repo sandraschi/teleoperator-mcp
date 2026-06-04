@@ -40,3 +40,8 @@ fix:
 
 test:
     uv run pytest tests/ -v
+
+ci:
+    uv sync --all-extras
+    uv run pytest tests/ -q
+    Set-Location webapp; npm ci; npm run check

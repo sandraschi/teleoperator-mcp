@@ -50,6 +50,7 @@ Target architecture (arbiter, per-group authority, LeRobot logging, VLA producer
 | [docs/BRINGUP.md](docs/BRINGUP.md) | Milestone 1 hardware checklist |
 | [docs/STACK.md](docs/STACK.md) | Full technology stack |
 | [docs/TODO.md](docs/TODO.md) | Milestone plan |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |
 
 ---
 
@@ -59,7 +60,9 @@ Target architecture (arbiter, per-group authority, LeRobot logging, VLA producer
 git clone https://github.com/sandraschi/teleoperator-mcp
 cd teleoperator-mcp
 just bootstrap
-.\scripts\m1-up.ps1   # backend + webapp + Tailscale Serve
+.\webapp\start.bat -WithTailscaleServe    # fleet standard (backend + Vite + Serve)
+# or Pico M1 helper (detached windows):
+.\scripts\m1-up.ps1
 ```
 
 Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
@@ -70,7 +73,7 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 
 | Layer | Technology | Port |
 |-------|------------|------|
-| Webapp | Vite + Three.js WebXR | 10900 |
+| Webapp | Vite 6 + React (Iron Shell) + Three.js WebXR | 10900 |
 | Backend | FastAPI + FastMCP + WebSocket | 10901 |
 | Adapter | `BoomyAdapter` → [yahboom-mcp](https://github.com/sandraschi/yahboom-mcp) | 10892 |
 | Video | [myconf](https://github.com/sandraschi/myconf) LiveKit + Goliath publisher | 15580 |
@@ -131,6 +134,7 @@ Details and troubleshooting: **[docs/TAILSCALE_VIEWERS.md](docs/TAILSCALE_VIEWER
 ```powershell
 just lint
 just test
+just ci      # same gates as GitHub Actions (Windows)
 just serve
 just web
 ```

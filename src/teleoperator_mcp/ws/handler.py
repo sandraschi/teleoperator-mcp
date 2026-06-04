@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 import httpx
 from fastapi import WebSocket, WebSocketDisconnect
 
+from ..activity_log import log_activity
 from ..adapters.boomy import BoomyAdapter
 from ..config import settings
 from ..gaze import GazeFollower
@@ -215,14 +216,16 @@ async def _notify_client(payload: dict) -> None:
 async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> None:
     global _stats, _watchdog_latched
 
+    msg_type = payload.get("type")
+    if msg_type == "heartbeat":
+        # Heartbeats keep the socket alive but must not reset pose watchdog or speech latch.
+        return
+
     _stats.frames_in += 1
     _stats.last_frame_at = time.time()
     _watchdog_latched = False
     _stats.watchdog_latched = False
 
-    msg_type = payload.get("type")
-    if msg_type == "heartbeat":
-        return
     if msg_type == "estop":
         reset_auto_timer()
         await get_arbiter().estop(http_client)
@@ -278,6 +281,12 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
     _stats = SessionStats(robot=robot, client=websocket.client.host if websocket.client else None)
     get_recorder().start_session(robot, client=_stats.client)
     logger.info("teleop session started robot=%s client=%s", robot, _stats.client)
+    log_activity(
+        "teleop",
+        f"WebXR session started robot={robot}",
+        level="INFO",
+        meta={"robot": robot, "client": _stats.client},
+    )
 
     watchdog_task: asyncio.Task | None = None
 
@@ -322,6 +331,7 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
                 )
     except WebSocketDisconnect:
         logger.info("teleop session disconnected")
+        log_activity("teleop", "WebXR session disconnected", level="INFO", meta={"robot": _stats.robot})
     finally:
         if watchdog_task:
             watchdog_task.cancel()

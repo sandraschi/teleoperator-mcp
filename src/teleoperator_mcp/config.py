@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 10901
     yahboom_api_url: str = "http://127.0.0.1:10892"
-    watchdog_ms: int = 300
+    watchdog_ms: int = 1000
     pose_hz_cap: int = 30
     max_linear: float = 0.3
     max_angular: float = 0.8

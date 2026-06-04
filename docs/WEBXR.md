@@ -8,7 +8,7 @@ All VR client code lives in **`webapp/`**. There is no native Pico SDK app, Unit
 
 | File | Role |
 |------|------|
-| `webapp/src/main.ts` | 2D landing: robot select, Enter VR, health poll |
+| `webapp/src/pages/HomePage.tsx` | Dashboard: robot select, Enter VR, health poll |
 | `webapp/src/xr-session.ts` | WebXR session (`immersive-vr`, `local-floor`), pose loop @ 30 Hz |
 | `webapp/src/pose-stream.ts` | WebSocket client, heartbeat, reconnect backoff, estop messages |
 | `webapp/src/hud.ts` | Chin-strip HUD (Three.js canvas texture, head-attached) |

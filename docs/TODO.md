@@ -16,7 +16,7 @@ Make the direct-teleop path solid enough to put on a real robot.
 - [x] **CORS:** `TELEOP_CORS_ORIGINS` allowlist (no `*` + credentials).
 - [x] **HUD redraw throttle:** diff rendered line; skip CanvasTexture upload when unchanged.
 - [x] **WS reconnect/backoff** in `pose-stream.ts` (exponential backoff; `disconnect()` opts out).
-- [x] **Watchdog latch:** e-stop once when frames cease; unlatch when frames/heartbeats resume; notify client `{watchdog:true}`.
+- [x] **Watchdog latch:** e-stop once when pose frames cease; heartbeats do **not** reset latch (2026-06-04); default watchdog **1000 ms**.
 - [x] **Unicode-safety fix:** em-dash removed from `start.ps1`.
 
 ---
@@ -73,8 +73,9 @@ The abstraction that makes the hardware ladder a driver swap.
 - [x] Goliath-side publisher: yahboom MJPEG/snapshot → LiveKit track (`src/teleoperator_mcp/livekit/`).
 - [x] Token + config REST; MCP `teleop_livekit_*` tools; webapp `livekit-client` subscribe → center plane.
 - [x] Document in [LIVEKIT.md](LIVEKIT.md).
+- [x] **SOTA webapp** — Iron Shell dashboard, `/logs`, `/tools`, fleet pages ([WEBAPP_STANDARDS](https://github.com/sandraschi/mcp-central-docs/blob/main/standards/WEBAPP_STANDARDS.md)).
 - [ ] Encode path tuned (FFmpeg H.264 ingest optional; current path is I420 frame publish).
-- [ ] Tailscale WSS + UDP bench on Pico; motion-to-photon latency measurement.
+- [ ] Tailscale WSS + UDP bench on Pico; motion-to-photon latency measurement. *(2026-06-04: LiveKit STUN fixed on Goliath; publisher bench OK; Pico `VID` sign-off pending.)*
 - [ ] Re-assess vestibular comfort with head-coupled PTZ + video lag (decouple if nauseating).
 
 ---

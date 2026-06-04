@@ -8,13 +8,24 @@ import logging
 import sys
 import time
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 import uvicorn
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, Query, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
+from .activity_log import (
+    SortOrder,
+    clear_logs,
+    export_logs,
+    install_log_handler,
+    log_activity,
+    log_stats,
+    query_logs,
+)
 from .config import cors_origins_list, settings
 from .livekit import (
     get_publisher,
@@ -158,6 +169,8 @@ _mcp_http = mcp.http_app()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    install_log_handler()
+    log_activity("system", f"Teleoperator MCP starting on port {settings.port}", level="INFO")
     logger.info("Teleoperator MCP starting (port %s)", settings.port)
     async with _mcp_http.router.lifespan_context(_mcp_http):
         if settings.livekit_enabled and settings.livekit_auto_start_publisher:
@@ -176,6 +189,78 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def log_api_requests(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/api") and not path.startswith("/api/logs"):
+        log_activity(
+            "api",
+            f"{request.method} {path} -> {response.status_code}",
+            level="INFO" if response.status_code < 400 else "WARNING",
+            meta={"method": request.method, "path": path, "status": response.status_code},
+        )
+    return response
+
+
+@app.get("/api/logs")
+async def logs_query(
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    level: str | None = Query(None),
+    kind: str | None = Query(None),
+    search: str | None = Query(None),
+    sort: str = Query("desc"),
+    after_id: str | None = Query(None),
+) -> dict:
+    order: SortOrder = "asc" if sort == "asc" else "desc"
+    return query_logs(
+        limit=limit,
+        offset=offset,
+        level=level,
+        kind=kind,
+        search=search,
+        sort=order,
+        after_id=after_id,
+    )
+
+
+@app.get("/api/logs/stats")
+async def logs_stats() -> dict:
+    return log_stats()
+
+
+@app.get("/api/logs/export")
+async def logs_export(
+    format: str = Query("json"),
+    level: str | None = Query(None),
+    kind: str | None = Query(None),
+    search: str | None = Query(None),
+    sort: str = Query("desc"),
+) -> Response:
+    order: SortOrder = "asc" if sort == "asc" else "desc"
+    fmt = format if format in ("json", "csv") else "json"
+    body, media_type, filename = export_logs(
+        format=fmt,
+        level=level,
+        kind=kind,
+        search=search,
+        sort=order,
+    )
+    return Response(
+        content=body,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.delete("/api/logs")
+async def logs_clear() -> dict:
+    clear_logs()
+    log_activity("system", "Log buffer cleared", level="WARNING")
+    return {"success": True}
 
 
 @app.post("/api/v1/teleop/set_mode")
@@ -255,6 +340,57 @@ async def health() -> dict:
         "uptime_s": round(time.time() - start_time, 1),
         "teleop": session_stats(),
         "livekit": get_publisher().status(),
+    }
+
+
+@app.get("/api/capabilities")
+async def capabilities() -> dict:
+    """Fleet webapp introspection — runtime tool surface (no secrets)."""
+    tools = [
+        "teleop_status",
+        "teleop_configure",
+        "teleop_estop",
+        "teleop_set_mode",
+        "teleop_takeover",
+        "teleop_set_gaze",
+        "teleop_gaze_center",
+        "teleop_livekit_status",
+        "teleop_livekit_publisher_start",
+        "teleop_livekit_publisher_stop",
+    ]
+    return {
+        "status": "ok",
+        "server": {"name": "teleoperator-mcp", "version": "0.1.0", "fastmcp": "3.2+"},
+        "tool_surface": {
+            "total": len(tools),
+            "portmanteau_count": 0,
+            "atomic_count": len(tools),
+            "portmanteau_tools": [],
+            "atomic_tools": tools,
+        },
+        "features": {
+            "sampling": False,
+            "agentic_workflows": False,
+            "prompts": False,
+            "resources": False,
+            "skills": False,
+            "webxr": True,
+            "websocket_teleop": True,
+            "livekit_video": settings.livekit_enabled,
+        },
+        "inventory": {
+            "workflow_tools": [],
+            "prompt_names": [],
+            "resource_uris": [],
+            "skill_uris": [],
+        },
+        "runtime": {
+            "transport": "dual",
+            "surface_mode": "atomic",
+            "web_port": 10900,
+            "backend_port": settings.port,
+        },
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 

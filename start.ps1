@@ -1,4 +1,8 @@
-# Teleoperator MCP - start backend (port 10901)
+# Repo-root launcher — delegates to webapp/start.ps1 (fleet standard).
 $ErrorActionPreference = "Stop"
-Set-Location $PSScriptRoot
-uv run python -m teleoperator_mcp.server --mode dual --port 10901
+$launcher = Join-Path $PSScriptRoot "webapp\start.ps1"
+if (-not (Test-Path $launcher)) {
+    Write-Error "Missing webapp/start.ps1"
+    exit 1
+}
+& $launcher @args

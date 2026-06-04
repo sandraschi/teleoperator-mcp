@@ -28,6 +28,14 @@ Copy-Item .env.example .env   # edit TELEOP_CORS_ORIGINS if your ts.net host dif
 .\scripts\m1-up.ps1
 ```
 
+Interactive dev (foreground, Ctrl+C cleanup, auto-opens browser):
+
+```powershell
+Set-Location D:\Dev\repos\teleoperator-mcp
+.\webapp\start.bat
+.\webapp\start.bat -WithTailscaleServe   # include Tailscale Serve for Pico
+```
+
 Manual (three terminals):
 
 ```powershell
