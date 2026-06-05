@@ -34,7 +34,7 @@ export class LiveKitVideoPlane {
     this.lastError = null;
 
     try {
-      const cfgRes = await fetch("/api/v1/livekit/config");
+      const cfgRes = await fetch(`/api/v1/livekit/config?robot=${encodeURIComponent(robot)}`);
       if (!cfgRes.ok) {
         this.state = "off";
         return false;

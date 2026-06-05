@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     bumi_max_angular: float = 0.4
     bumi_head_yaw_gain: float = 57.3
     bumi_head_pitch_gain: float = 45.0
+    robotics_api_url: str = "http://127.0.0.1:12230"
+    vboomy_robot_id: str = "vbot_yahboom_01"
+    livekit_vboomy_room: str = "teleop-vboomy"
     # Session recording (LeRobot-compatible JSONL, M4)
     recording_enabled: bool = True
     recording_dir: str = "data/teleop_recordings"

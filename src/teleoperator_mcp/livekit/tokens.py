@@ -52,10 +52,19 @@ def issue_publisher_token(*, room: str, identity: str, name: str | None = None) 
     return token.to_jwt()
 
 
-def livekit_public_config() -> dict:
+def livekit_room_for_robot(robot_id: str) -> str:
+    rid = robot_id.strip().lower()
+    if rid in ("vboomy", "vbumi"):
+        return settings.livekit_vboomy_room
+    return settings.livekit_room
+
+
+def livekit_public_config(*, robot: str | None = None) -> dict:
+    room = livekit_room_for_robot(robot) if robot else settings.livekit_room
     return {
         "enabled": settings.livekit_enabled,
         "url": settings.livekit_public_url or settings.livekit_url,
-        "room": settings.livekit_room,
+        "room": room,
         "publisher_fps": settings.livekit_publisher_fps,
+        "robot": robot,
     }

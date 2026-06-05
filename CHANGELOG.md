@@ -27,6 +27,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added (robot)
 
 - **`BumiAdapter`** — `?robot=bumi` → bumi-mcp `/api/v1` (walk, head, estop, manip stub).
+- **`VboomyAdapter`** — `?robot=vboomy` → robotics-mcp → Resonite OSC (virtual Boomy twin).
+- **[docs/VIRTUAL_TWINS.md](docs/VIRTUAL_TWINS.md)** + **[docs/resonite/VBOOMY_OSC.md](docs/resonite/VBOOMY_OSC.md)** — vBoomy proof loop.
+- **`scripts/register-vboomy.ps1`**, **`scripts/start-vboomy-loop.ps1`**.
+- LiveKit config accepts `?robot=` for room selection (`teleop-vboomy`).
 - **[docs/MANIP_AND_HANDS.md](docs/MANIP_AND_HANDS.md)** — WebXR hands vs Pico body trackers vs encoders.
 
 ### Added (infra)

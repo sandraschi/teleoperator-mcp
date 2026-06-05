@@ -2,6 +2,7 @@
 
 from teleoperator_mcp.adapters.boomy import BoomyAdapter
 from teleoperator_mcp.adapters.bumi import BumiAdapter
+from teleoperator_mcp.adapters.vboomy import VboomyAdapter
 from teleoperator_mcp.producers.human_pose import HumanPoseProducer
 
 
@@ -20,6 +21,13 @@ def test_bumi_capabilities() -> None:
     assert cap.has_legs is True
     assert cap.balance_risk is True
     assert cap.has_arms is True
+
+
+def test_vboomy_capabilities() -> None:
+    cap = VboomyAdapter().capabilities
+    assert cap.robot_id == "vboomy"
+    assert cap.has_base is True
+    assert cap.balance_risk is False
 
 
 def test_human_pose_producer_emits_groups() -> None:

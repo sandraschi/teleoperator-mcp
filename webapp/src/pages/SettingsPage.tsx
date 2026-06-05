@@ -79,7 +79,7 @@ export function SettingsPage() {
           <dt>Backend port</dt>
           <dd>10901 (FastAPI + MCP)</dd>
           <dt>WebSocket</dt>
-          <dd>/ws/teleop?robot=boomy</dd>
+          <dd>/ws/teleop?robot=boomy | bumi | vboomy</dd>
         </dl>
       </section>
     </>

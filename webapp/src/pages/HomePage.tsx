@@ -1,7 +1,24 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { XrSession } from "../xr-session";
 import { useCapabilities } from "../lib/capabilities";
-import type { HealthResponse } from "../lib/types";
+import type { HealthResponse, RobotCatalogEntry } from "../lib/types";
+
+const FALLBACK_ROBOTS: Record<string, RobotCatalogEntry> = {
+  boomy: { status: "available", robot_id: "boomy", display_name: "Boomy (Yahboom)" },
+  bumi: { status: "available", robot_id: "bumi", display_name: "Bumi (biped)" },
+  vboomy: {
+    status: "available",
+    robot_id: "vboomy",
+    display_name: "vBoomy (Resonite virtual twin)",
+    virtual_twin: true,
+  },
+};
+
+function robotFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  const q = params.get("robot")?.trim().toLowerCase();
+  return q || "boomy";
+}
 
 export function HomePage() {
   const { caps, loading: capsLoading } = useCapabilities();
@@ -9,7 +26,22 @@ export function HomePage() {
   const [xrHint, setXrHint] = useState("Checking WebXR…");
   const [vrSupported, setVrSupported] = useState(false);
   const [entering, setEntering] = useState(false);
-  const [robot, setRobot] = useState("boomy");
+  const [robot, setRobot] = useState(robotFromUrl);
+
+  const catalog = useMemo(
+    () => health?.teleop?.robots ?? FALLBACK_ROBOTS,
+    [health?.teleop?.robots],
+  );
+
+  const robotOptions = useMemo(
+    () =>
+      Object.entries(catalog)
+        .filter(([, meta]) => meta.status === "available")
+        .sort(([a], [b]) => a.localeCompare(b)),
+    [catalog],
+  );
+
+  const selectedMeta = catalog[robot];
 
   const pollHealth = useCallback(async () => {
     try {
@@ -25,6 +57,18 @@ export function HomePage() {
     const id = window.setInterval(() => void pollHealth(), 3000);
     return () => window.clearInterval(id);
   }, [pollHealth]);
+
+  useEffect(() => {
+    const q = robotFromUrl();
+    if (q !== robot) setRobot(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("robot", robot);
+    window.history.replaceState(null, "", url.toString());
+  }, [robot]);
 
   useEffect(() => {
     void (async () => {
@@ -85,7 +129,7 @@ export function HomePage() {
       <section className="page-card">
         <h2>Enter VR teleop</h2>
         <p style={{ margin: "0 0 1rem", color: "var(--shell-muted)", fontSize: "0.9rem" }}>
-          Pico 4 / Quest browser → WebXR pose stream → Boomy. Chin HUD stays out of the way.
+          Pico 4 / Quest browser → WebXR pose stream → fleet robot or Resonite virtual twin.
         </p>
         <div className="field">
           <label htmlFor="robot-select">Robot</label>
@@ -95,9 +139,19 @@ export function HomePage() {
             onChange={(e) => setRobot(e.target.value)}
             disabled={entering}
           >
-            <option value="boomy">Boomy (Yahboom)</option>
+            {robotOptions.map(([id, meta]) => (
+              <option key={id} value={id}>
+                {meta.display_name}
+                {meta.virtual_twin ? " · virtual" : ""}
+              </option>
+            ))}
           </select>
         </div>
+        {selectedMeta?.virtual_twin && (
+          <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", color: "var(--shell-muted)" }}>
+            Resonite OSC on port 9000 — register with scripts/register-vboomy.ps1
+          </p>
+        )}
         <button
           type="button"
           className="btn"

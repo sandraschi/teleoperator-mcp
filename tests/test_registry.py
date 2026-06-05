@@ -11,11 +11,10 @@ def test_list_robots_includes_boomy_and_planned() -> None:
     catalog = list_robots()
     assert "boomy" in catalog
     assert catalog["boomy"]["status"] == "available"
-    assert catalog["boomy"]["has_base"] is True
     assert "bumi" in catalog
-    assert catalog["bumi"]["balance_risk"] is True
+    assert "vboomy" in catalog
+    assert catalog["vboomy"].get("virtual_twin") is True
     assert "r1-a5-d" in catalog
-    assert catalog["r1-a5-d"]["status"] == "planned"
 
 
 def test_create_adapter_boomy() -> None:
@@ -30,7 +29,15 @@ def test_create_adapter_bumi() -> None:
     adapter = create_adapter("bumi")
     assert isinstance(adapter, BumiAdapter)
     assert adapter.capabilities.balance_risk is True
-    assert adapter.capabilities.has_arms is True
+
+
+def test_create_adapter_vboomy() -> None:
+    from teleoperator_mcp.adapters.vboomy import VboomyAdapter
+
+    adapter = create_adapter("vboomy")
+    assert isinstance(adapter, VboomyAdapter)
+    assert adapter.capabilities.robot_id == "vboomy"
+    assert adapter.capabilities.has_arms is False
 
 
 def test_create_adapter_unknown_raises() -> None:

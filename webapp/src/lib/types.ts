@@ -32,6 +32,20 @@ export interface Capabilities {
   timestamp: string;
 }
 
+export interface RobotCatalogEntry {
+  status: string;
+  robot_id: string;
+  display_name: string;
+  has_base?: boolean;
+  has_arms?: boolean;
+  has_legs?: boolean;
+  hand_type?: string;
+  balance_risk?: boolean;
+  virtual_twin?: boolean;
+  platform?: string;
+  message?: string;
+}
+
 export interface HealthResponse {
   status: string;
   service: string;
@@ -41,6 +55,7 @@ export interface HealthResponse {
     frames_in?: number;
     robot?: string;
     display_name?: string;
+    robots?: Record<string, RobotCatalogEntry>;
   };
   livekit?: { running?: boolean };
 }

@@ -26,7 +26,7 @@ from .activity_log import (
     log_stats,
     query_logs,
 )
-from .config import cors_origins_list, settings
+from .runtime import robots_catalog
 from .livekit import (
     get_publisher,
     issue_subscriber_token,
@@ -293,10 +293,16 @@ async def api_teleop_gaze_center() -> dict:
     return await trigger_gaze_center()
 
 
+@app.get("/api/v1/robots")
+async def api_robots() -> dict:
+    """Available teleop adapters (?robot= route)."""
+    return {"robots": robots_catalog()}
+
+
 @app.get("/api/v1/livekit/config")
-async def api_livekit_config() -> dict:
+async def api_livekit_config(robot: str | None = Query(default=None)) -> dict:
     """Public LiveKit connection info for WebXR client (no secrets)."""
-    return livekit_public_config()
+    return livekit_public_config(robot=robot)
 
 
 @app.post("/api/v1/livekit/token")
