@@ -22,6 +22,9 @@ LiveKit ← camera (Boomy MJPEG or Resonite head cam)
 | `vboomy` | VboomyAdapter | robotics-mcp → OSC | `teleop-vboomy` |
 | `bumi` | BumiAdapter | bumi-mcp REST | `teleop-boomy` (until vBumi) |
 | `vbumi` | (planned) | robotics-mcp → OSC | `teleop-vboomy` |
+| `vmechazilla` | (same as vboomy + robot id) | robotics-mcp → OSC | `teleop-vboomy` |
+
+Creative vBots share one OSC contract — swap mesh/scale in Resonite (`mechazilla` type, scale 2.5). Register with `robot_type=mechazilla`.
 
 ## vBoomy proof loop
 
