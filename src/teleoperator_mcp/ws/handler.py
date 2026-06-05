@@ -241,13 +241,17 @@ async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> N
 
     head = payload.get("head") or {}
     right = payload.get("right") or {}
+    left = payload.get("left") or {}
+    hands = payload.get("hands")
 
     include_gaze = (
         settings.gaze_every_n_frames <= 1
         or _stats.frames_in % settings.gaze_every_n_frames == 0
     )
     human = get_arbiter().human
-    command = human.from_pose_frame(head, right, include_gaze=include_gaze)
+    command = human.from_pose_frame(
+        head, right, left, include_gaze=include_gaze, hands=hands if isinstance(hands, dict) else None
+    )
     arbiter = get_arbiter()
     arbiter.update_human(command)
     resolved = await arbiter.apply_resolved(http_client)

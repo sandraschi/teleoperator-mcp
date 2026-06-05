@@ -24,6 +24,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Webapp entry: `src/main.tsx` + React pages; WebXR core unchanged (`xr-session.ts`, `pose-stream.ts`, `livekit-video.ts`).
 
+### Added (robot)
+
+- **`BumiAdapter`** — `?robot=bumi` → bumi-mcp `/api/v1` (walk, head, estop, manip stub).
+- **[docs/MANIP_AND_HANDS.md](docs/MANIP_AND_HANDS.md)** — WebXR hands vs Pico body trackers vs encoders.
+
 ### Added (infra)
 
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) — `windows-latest` only: `pytest` + webapp `npm run check`.

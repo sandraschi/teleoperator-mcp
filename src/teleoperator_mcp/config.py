@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     gaze_every_n_frames: int = 1
     gaze_min_delta_deg: float = 1.0
     default_robot: str = "boomy"
+    bumi_api_url: str = "http://127.0.0.1:10774"
+    bumi_max_linear: float = 0.15
+    bumi_max_angular: float = 0.4
+    bumi_head_yaw_gain: float = 57.3
+    bumi_head_pitch_gain: float = 45.0
     # Session recording (LeRobot-compatible JSONL, M4)
     recording_enabled: bool = True
     recording_dir: str = "data/teleop_recordings"

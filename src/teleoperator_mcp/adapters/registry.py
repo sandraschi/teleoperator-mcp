@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .base import RobotAdapter
 from .boomy import BoomyAdapter
+from .bumi import BumiAdapter
 
 PLANNED_ROBOTS: dict[str, dict] = {
     "r1-a5-d": {
@@ -16,6 +17,7 @@ PLANNED_ROBOTS: dict[str, dict] = {
 
 def list_robots() -> dict[str, dict]:
     boomy = BoomyAdapter().capabilities
+    bumi = BumiAdapter().capabilities
     out: dict[str, dict] = {
         "boomy": {
             "status": "available",
@@ -24,6 +26,17 @@ def list_robots() -> dict[str, dict]:
             "has_base": boomy.has_base,
             "has_arms": boomy.has_arms,
             "hand_type": boomy.hand_type,
+            "balance_risk": boomy.balance_risk,
+        },
+        "bumi": {
+            "status": "available",
+            "robot_id": bumi.robot_id,
+            "display_name": bumi.display_name,
+            "has_base": bumi.has_base,
+            "has_legs": bumi.has_legs,
+            "has_arms": bumi.has_arms,
+            "hand_type": bumi.hand_type,
+            "balance_risk": bumi.balance_risk,
         },
     }
     out.update(PLANNED_ROBOTS)
@@ -34,6 +47,8 @@ def create_adapter(robot_id: str) -> RobotAdapter:
     rid = robot_id.strip().lower()
     if rid == "boomy":
         return BoomyAdapter()
+    if rid == "bumi":
+        return BumiAdapter()
     if rid in PLANNED_ROBOTS:
         raise ValueError(f"Robot '{robot_id}' is planned but not available yet")
-    raise ValueError(f"Unknown robot '{robot_id}' — supported: boomy")
+    raise ValueError(f"Unknown robot '{robot_id}' — supported: boomy, bumi")
