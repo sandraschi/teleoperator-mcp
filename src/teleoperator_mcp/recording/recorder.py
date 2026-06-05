@@ -211,7 +211,7 @@ class SessionRecorder:
                 "observation.head.yaw": {"dtype": "float32", "shape": [1]},
                 "observation.head.pitch": {"dtype": "float32", "shape": [1]},
             },
-            "note": "JSONL episodes; export to LeRobot parquet via scripts/export-lerobot.ps1 (M4).",
+            "note": "JSONL episodes; export: scripts/export-lerobot.ps1 or POST /api/v1/recording/export",
         }
         info_path.write_text(json.dumps(info, indent=2), encoding="utf-8")
 

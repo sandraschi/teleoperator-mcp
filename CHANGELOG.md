@@ -29,9 +29,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **`BumiAdapter`** — `?robot=bumi` → bumi-mcp `/api/v1` (walk, head, estop, manip stub).
 - **`VboomyAdapter`** — `?robot=vboomy` → robotics-mcp → Resonite OSC (virtual Boomy twin).
 - **[docs/VIRTUAL_TWINS.md](docs/VIRTUAL_TWINS.md)** + **[docs/resonite/VBOOMY_OSC.md](docs/resonite/VBOOMY_OSC.md)** — vBoomy proof loop.
-- **`scripts/register-vboomy.ps1`**, **`scripts/start-vboomy-loop.ps1`**.
+- **[docs/VBOT_CREATIVE_TWINS.md](docs/VBOT_CREATIVE_TWINS.md)** — Mechazilla, kaiju, creative vBot roster.
+- **`scripts/register-vboomy.ps1`**, **`scripts/start-vboomy-loop.ps1`**, **`scripts/test-vboomy-osc.ps1`**.
 - LiveKit config accepts `?robot=` for room selection (`teleop-vboomy`).
 - **[docs/MANIP_AND_HANDS.md](docs/MANIP_AND_HANDS.md)** — WebXR hands vs Pico body trackers vs encoders.
+
+### Added (LeRobot)
+
+- **`export_lerobot.py`** + **`scripts/export-lerobot.ps1`** — JSONL → LeRobot v2.1 parquet (`pyarrow`).
+- **`POST /api/v1/recording/export`** — HTTP export with `lerobot-train` hint in response.
+- **[docs/LEROBOT.md](docs/LEROBOT.md)** — full capture + export + train path (all robots including vboomy).
 
 ### Added (infra)
 

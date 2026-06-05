@@ -63,7 +63,8 @@ The abstraction that makes the hardware ladder a driver swap.
 ## Milestone 4 - Data flywheel (~1 day, no hardware)
 
 - [x] Log every teleop session as **LeRobot-compatible JSONL** (pose + resolved commands + authority). See [LEROBOT.md](LEROBOT.md).
-- [ ] Parquet export + video frames (depends on M5 LiveKit return path).
+- [x] **Parquet export** — `scripts/export-lerobot.ps1`, `POST /api/v1/recording/export`. See [LEROBOT.md](LEROBOT.md).
+- [ ] Video frames in parquet (depends on M5 LiveKit egress sync).
 - [x] Boomy base-only demos are recorded to prove the pipeline before manipulation hardware exists.
 
 ---

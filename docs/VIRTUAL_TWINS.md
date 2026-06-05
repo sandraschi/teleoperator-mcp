@@ -66,7 +66,11 @@ Or local: `http://127.0.0.1:10900/#/?robot=vboomy`
 - robotics-mcp logs: `OSC → 127.0.0.1:9000 /robot/vbot_yahboom_01/move ...`
 - Resonite: robot moves with right stick + trigger
 - Head yaw/pitch → `/robot/.../head`
-- LeRobot JSONL in `data/teleop_recordings/` on session connect
+- LeRobot JSONL in `data/teleop_recordings/` on session connect → export via **`scripts/export-lerobot.ps1`** ([LEROBOT.md](LEROBOT.md))
+
+## Creative vBots (Mechazilla, kaiju, …)
+
+Same loop for any mesh — see **[VBOT_CREATIVE_TWINS.md](VBOT_CREATIVE_TWINS.md)**. Resonite scale is part of the fun (Godzilla-sized robots welcome).
 
 ## Why this matters (paper angle)
 

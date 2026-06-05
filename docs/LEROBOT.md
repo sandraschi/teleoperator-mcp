@@ -1,37 +1,81 @@
-# LeRobot session recording (M4)
+# LeRobot session recording and export (M4)
 
-Teleoperator-mcp logs every WebXR teleop session as **JSONL episodes** under `data/teleop_recordings/` (configurable via `TELEOP_RECORDING_DIR`).
+Teleoperator-mcp logs every WebXR teleop session as **JSONL episodes** under `data/teleop_recordings/` (configurable via `TELEOP_RECORDING_DIR`). Export to **LeRobot v2.1 parquet** for `lerobot-train`.
 
-## Layout
+Works for **all robot adapters** — `boomy`, `bumi`, `vboomy`, future kaiju vbots — same frame schema; `robot_id` is stored per episode.
+
+## Layout (JSONL capture)
 
 ```
 data/teleop_recordings/
   meta/
-    info.json          # LeRobot v2.1-style feature schema (once)
+    info.json          # feature schema (once)
     episodes.jsonl     # one row per finished session
   data/
     episode_000000/
-      session.json     # session metadata
-      frames.jsonl     # one row per pose frame
-      summary.json     # frame count, duration
+      session.json
+      frames.jsonl
+      summary.json
 ```
 
-## Frame schema
+## Export layout (LeRobot parquet)
 
-Each `frames.jsonl` row includes:
+```
+data/lerobot_export/
+  meta/
+    info.json
+    episodes.jsonl
+    tasks.jsonl
+  data/
+    chunk-000/
+      episode_000000.parquet
+```
+
+Parquet columns: `timestamp`, `frame_index`, `episode_index`, `index`, `task_index`, `observation.state`, `action`, head/controller floats, `next.done`.
+
+Video is **not** embedded yet (M5: LiveKit egress sync). `meta/info.json` sets `"video_path": null`.
+
+## Export
+
+```powershell
+Set-Location D:\Dev\repos\teleoperator-mcp
+.\scripts\export-lerobot.ps1
+.\scripts\export-lerobot.ps1 -InputDir data/teleop_recordings -OutputDir data/lerobot_export -Overwrite
+```
+
+Or HTTP:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:10901/api/v1/recording/export `
+  -Body (@{ overwrite = $true } | ConvertTo-Json) -ContentType application/json
+```
+
+Or Python:
+
+```powershell
+py -m teleoperator_mcp.recording.export_lerobot --input data/teleop_recordings --output data/lerobot_export --overwrite
+```
+
+## Train (after export)
+
+```powershell
+pip install lerobot
+lerobot-train --dataset.repo_id=local/teleop --dataset.root=data/lerobot_export
+```
+
+Use your policy config / WALL-OSS recipe as needed. Virtual-twin demos (vBoomy, Mechazilla) and physical Boomy episodes can live in one dataset — filter by `meta/episodes.jsonl` `robot_id` when curating.
+
+## Frame schema (JSONL)
 
 | Field | Description |
 |-------|-------------|
-| `observation.state` | `[linear, angular, linear_y, pan, tilt]` sent to robot |
-| `action` | Same vector (teleop imitation target) |
-| `observation.head.*` | Head yaw/pitch/roll from WebXR |
-| `observation.controller.*` | Trigger + stick axes |
-| `authority` | Per-group DIRECT/AUTO state |
-| `sources` | Which producer won each group |
+| `observation.state` | `[linear, angular, linear_y, pan, tilt]` |
+| `action` | Same vector (imitation target) |
+| `observation.head.*` | WebXR head |
+| `observation.controller.*` | Trigger + stick |
+| `authority` / `sources` | Arbiter state |
 
-Heartbeats, estop, and takeover messages are **not** logged as frames.
-
-## Enable / disable
+## Enable / disable capture
 
 ```env
 TELEOP_RECORDING_ENABLED=1
@@ -39,17 +83,14 @@ TELEOP_RECORDING_DIR=data/teleop_recordings
 TELEOP_RECORDING_FPS=30
 ```
 
-Recording starts when a WebSocket session connects (`/ws/teleop?robot=boomy`) and finalizes on disconnect.
+Recording starts on WebSocket connect (`/ws/teleop?robot=…`) and finalizes on disconnect.
 
 ## Status
 
-`teleop_status` MCP tool and `GET /api/v1/health` include a `recording` block (active session, frame count, episode path).
+`GET /api/v1/health` → `teleop.recording` block.
 
-## Parquet export + video (later)
+## Related
 
-Full LeRobot parquet with synced video is **not** in JSONL yet. When M5 video is stable, link episode timestamps to LiveKit egress or frame IDs. See [LIVEKIT.md](LIVEKIT.md) § Recording.
-
-## Related docs
-
-- [ARCHITECTURE.md](ARCHITECTURE.md) — control vs video pipes
-- [LIVEKIT.md](LIVEKIT.md) — video setup and troubleshooting
+- [VIRTUAL_TWINS.md](VIRTUAL_TWINS.md) — Resonite vBots + same recording path
+- [VBOT_CREATIVE_TWINS.md](VBOT_CREATIVE_TWINS.md) — Mechazilla, kaiju, scale
+- [LIVEKIT.md](LIVEKIT.md) — video pipe (future parquet video sync)

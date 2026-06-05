@@ -9,6 +9,7 @@ import sys
 import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Query, Request, WebSocket
@@ -162,6 +163,13 @@ class LiveKitTokenBody(BaseModel):
     identity: str = Field(min_length=1, max_length=128)
     room: str | None = None
     name: str | None = None
+
+
+class RecordingExportBody(BaseModel):
+    input_dir: str | None = None
+    output_dir: str | None = None
+    episodes: list[int] | None = None
+    overwrite: bool = False
 
 
 _mcp_http = mcp.http_app()
@@ -338,6 +346,24 @@ async def api_livekit_publisher_stop() -> dict:
     return await stop_publisher()
 
 
+@app.post("/api/v1/recording/export")
+async def api_recording_export(body: RecordingExportBody | None = None) -> dict:
+    """Export JSONL teleop sessions to LeRobot v2.1 parquet."""
+    from .recording.export_lerobot import export_lerobot_dataset, export_summary
+
+    req = body or RecordingExportBody()
+    input_dir = req.input_dir or settings.recording_dir
+    output_dir = req.output_dir or str(Path(settings.recording_dir).parent / "lerobot_export")
+    result = export_lerobot_dataset(
+        input_dir,
+        output_dir,
+        episode_indices=req.episodes,
+        fps=settings.recording_fps,
+        overwrite=req.overwrite,
+    )
+    return export_summary(result)
+
+
 @app.get("/api/v1/health")
 async def health() -> dict:
     return {
@@ -363,6 +389,7 @@ async def capabilities() -> dict:
         "teleop_livekit_status",
         "teleop_livekit_publisher_start",
         "teleop_livekit_publisher_stop",
+        "teleop_export_recording",
     ]
     return {
         "status": "ok",
