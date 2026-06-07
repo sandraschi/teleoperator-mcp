@@ -1,4 +1,4 @@
-# Repo-root launcher — delegates to webapp/start.ps1 (fleet standard).
+# Repo-root launcher - delegates to webapp/start.ps1 (fleet standard).
 $ErrorActionPreference = "Stop"
 $launcher = Join-Path $PSScriptRoot "webapp\start.ps1"
 if (-not (Test-Path $launcher)) {

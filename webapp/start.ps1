@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$Headless,
     [switch]$BackendOnly,
     [switch]$FrontendOnly,
@@ -9,7 +9,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-. "D:/Dev/repos/mcp-central-docs/standards/FleetStartMode.ps1"
+$FleetStartPath = Join-Path $ProjectRoot "scripts\FleetStartMode.ps1"
+if (-not (Test-Path -LiteralPath $FleetStartPath)) {
+    Write-Host "ERROR: Missing vendored launcher helper: $FleetStartPath" -ForegroundColor Red
+    exit 1
+}
+. $FleetStartPath
 $FleetStart = Initialize-FleetStartMode @PSBoundParameters
 Enter-FleetHeadlessConsole -Headless:$Headless -BackendOnly:$BackendOnly
 
@@ -89,7 +94,7 @@ function Start-FrontendProcess {
         )
         return Start-Process pwsh -ArgumentList $frontendArgs -WorkingDirectory $PSScriptRoot -WindowStyle Minimized -PassThru
     }
-    # npm is npm.cmd on Windows — invoke via cmd.exe (see yahboom-mcp webapp/start.ps1)
+    # npm is npm.cmd on Windows - invoke via cmd.exe (see yahboom-mcp webapp/start.ps1)
     return Start-Process cmd -WorkingDirectory $PSScriptRoot -ArgumentList "/c", "npm", "run", "dev" -NoNewWindow -PassThru
 }
 
@@ -171,3 +176,4 @@ finally {
         Write-Host "[DONE]" -ForegroundColor Green
     }
 }
+

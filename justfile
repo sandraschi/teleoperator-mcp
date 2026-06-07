@@ -1,4 +1,4 @@
-set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
+﻿set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
 export NAME := "Teleoperator MCP"
 export DESC := "WebXR teleoperation gateway"
@@ -8,7 +8,7 @@ export WEB_PORT := "10900"
 export HOST := "0.0.0.0"
 
 default:
-    @pwsh.exe -NoProfile -ExecutionPolicy Bypass -File ../mcp-central-docs/scripts/just-dashboard.ps1 -Path .
+    @just --list
 
 bootstrap:
     uv sync --all-extras
@@ -45,3 +45,4 @@ ci:
     uv sync --all-extras
     uv run pytest tests/ -q
     Set-Location webapp; npm ci; npm run check
+
