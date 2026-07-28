@@ -21,7 +21,7 @@ if (Test-Path $apiFile) {
     if ($apiContent -match "127.0.0.1:(\d+)") {
         $apiPort = [int]$Matches[1]
         if ($apiPort -ne 10901) {
-            throw "API_BASE in $apiFile points to port $apiPort but backend serves on 10901. Fix before building — dev proxy masks this, prod will FAIL."
+            throw "API_BASE in $apiFile points to port $apiPort but backend serves on 10901. Fix before building - dev proxy masks this, prod will FAIL."
         }
         Write-Host "  API_BASE port: $apiPort (matches backend) " -ForegroundColor Green
     }
