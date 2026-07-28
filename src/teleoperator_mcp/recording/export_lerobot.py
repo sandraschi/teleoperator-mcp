@@ -10,14 +10,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-
 logger = logging.getLogger("teleoperator_mcp.recording.export_lerobot")
 
 DEFAULT_TASK = "teleop_base_gaze"
 FEATURES: dict[str, dict[str, Any]] = {
-    "observation.state": {"dtype": "float32", "shape": [5], "names": ["linear", "angular", "linear_y", "pan", "tilt"]},
-    "action": {"dtype": "float32", "shape": [5], "names": ["linear", "angular", "linear_y", "pan", "tilt"]},
+    "observation.state": {
+        "dtype": "float32",
+        "shape": [5],
+        "names": ["linear", "angular", "linear_y", "pan", "tilt"],
+    },
+    "action": {
+        "dtype": "float32",
+        "shape": [5],
+        "names": ["linear", "angular", "linear_y", "pan", "tilt"],
+    },
     "observation.head.yaw": {"dtype": "float32", "shape": [1], "names": None},
     "observation.head.pitch": {"dtype": "float32", "shape": [1], "names": None},
     "observation.head.roll": {"dtype": "float32", "shape": [1], "names": None},
@@ -200,7 +206,9 @@ def export_lerobot_dataset(
     robot_type = "teleop"
     if info_path.exists():
         try:
-            robot_type = json.loads(info_path.read_text(encoding="utf-8")).get("robot_type", robot_type)
+            robot_type = json.loads(info_path.read_text(encoding="utf-8")).get(
+                "robot_type", robot_type
+            )
         except json.JSONDecodeError:
             pass
 
@@ -262,7 +270,9 @@ def export_lerobot_dataset(
             skipped=skipped,
         )
 
-    _write_meta(dst, episodes=exported_meta, total_frames=total_frames, fps=fps, robot_type=robot_type)
+    _write_meta(
+        dst, episodes=exported_meta, total_frames=total_frames, fps=fps, robot_type=robot_type
+    )
 
     msg = f"exported {len(exported_meta)} episode(s), {total_frames} frame(s) → {dst}"
     logger.info(msg)
@@ -303,7 +313,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Export teleop JSONL to LeRobot parquet")
     parser.add_argument("--input", default="data/teleop_recordings", help="JSONL recording root")
     parser.add_argument("--output", default="data/lerobot_export", help="Parquet output root")
-    parser.add_argument("--episodes", default="", help="Comma-separated episode indices (default: all)")
+    parser.add_argument(
+        "--episodes", default="", help="Comma-separated episode indices (default: all)"
+    )
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
@@ -319,7 +331,6 @@ def main() -> None:
         fps=args.fps,
         overwrite=args.overwrite,
     )
-    print(json.dumps(export_summary(result), indent=2))
     raise SystemExit(0 if result.success else 1)
 
 

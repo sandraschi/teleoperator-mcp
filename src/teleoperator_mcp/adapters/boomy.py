@@ -5,10 +5,10 @@ from __future__ import annotations
 import httpx
 
 from ..config import settings
+from ..gaze import GazeFollower
 from ..mappers.boomy import BoomyMapper, DriveCommand, PtzCommand
 from ..types import BaseCommand, GazeCommand, ProducerCommand, RobotCapabilities
 from .base import RobotAdapter
-from ..gaze import GazeFollower
 
 
 class BoomyAdapter(RobotAdapter):

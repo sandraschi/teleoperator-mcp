@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { XrSession } from "../xr-session";
 import { useCapabilities } from "../lib/capabilities";
+import { API_BASE } from "../lib/api";
+import { useBackendStore } from "../store";
 import type { HealthResponse, RobotCatalogEntry } from "../lib/types";
 
 const FALLBACK_ROBOTS: Record<string, RobotCatalogEntry> = {
@@ -27,6 +29,9 @@ export function HomePage() {
   const [vrSupported, setVrSupported] = useState(false);
   const [entering, setEntering] = useState(false);
   const [robot, setRobot] = useState(robotFromUrl);
+  const setOnline = useBackendStore((s) => s.setOnline);
+  const pollAttempt = useRef(0);
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const catalog = useMemo(
     () => health?.teleop?.robots ?? FALLBACK_ROBOTS,
@@ -45,17 +50,32 @@ export function HomePage() {
 
   const pollHealth = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/health");
-      setHealth((await res.json()) as HealthResponse);
+      const res = await fetch(API_BASE + "/api/v1/health");
+      const data = (await res.json()) as HealthResponse;
+      setHealth(data);
+      setOnline(true);
+      pollAttempt.current = 0;
     } catch {
       setHealth(null);
+      setOnline(false);
+      pollAttempt.current += 1;
     }
-  }, []);
+  }, [setOnline]);
 
   useEffect(() => {
     void pollHealth();
-    const id = window.setInterval(() => void pollHealth(), 3000);
-    return () => window.clearInterval(id);
+    const schedule = () => {
+      const delays = [1000, 2000, 4000, 8000, 16000];
+      const delay = delays[Math.min(pollAttempt.current, delays.length - 1)];
+      pollTimer.current = setTimeout(() => {
+        void pollHealth().then(schedule);
+      }, delay);
+    };
+    const id = setTimeout(schedule, 3000);
+    return () => {
+      clearTimeout(id);
+      if (pollTimer.current) clearTimeout(pollTimer.current);
+    };
   }, [pollHealth]);
 
   useEffect(() => {
@@ -108,19 +128,19 @@ export function HomePage() {
   return (
     <>
       <div className="page-grid">
-        <div className="stat-card">
+        <div className="stat-card" data-testid="kpi-server">
           <dt>Backend</dt>
           <dd>{health?.status === "ok" ? "Online" : "Offline"}</dd>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" data-testid="kpi-robot">
           <dt>Teleop session</dt>
           <dd>{health?.teleop?.active ? "Active" : "Idle"}</dd>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" data-testid="kpi-webrtc">
           <dt>Frames in</dt>
           <dd>{health?.teleop?.frames_in ?? 0}</dd>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" data-testid="kpi-tools">
           <dt>Uptime</dt>
           <dd>{health ? `${health.uptime_s}s` : "—"}</dd>
         </div>

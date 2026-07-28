@@ -10,7 +10,12 @@ import httpx
 from ..adapters.base import RobotAdapter
 from ..producers.human_pose import HumanPoseProducer
 from ..producers.nav_stub import NavStubProducer
-from ..types import BaseCommand, GazeCommand, ProducerCommand, RobotCapabilities, groups_from_capabilities
+from ..types import (
+    BaseCommand,
+    GazeCommand,
+    ProducerCommand,
+    groups_from_capabilities,
+)
 from .state import ALL_GROUPS, AuthorityState, GroupAuthority, GroupName, TeleopMode
 
 logger = logging.getLogger("teleoperator_mcp.arbiter")
@@ -59,7 +64,9 @@ class AuthorityArbiter:
 
     def takeover(self, group: GroupName | None = None) -> dict:
         """Human reclaims authority (squeeze / MCP). Clears estop latch."""
-        targets: list[GroupName] = [group] if group else [g for g in ALL_GROUPS if self._group_allowed(g)]
+        targets: list[GroupName] = (
+            [group] if group else [g for g in ALL_GROUPS if self._group_allowed(g)]
+        )
         if self._last_applied is not None:
             self._last_human = ProducerCommand(
                 producer_id=HUMAN_ID,
@@ -143,8 +150,12 @@ class AuthorityArbiter:
             },
             "any_auto": self.any_auto(),
             "last_applied": {
-                "base": self._last_applied.base.__dict__ if self._last_applied and self._last_applied.base else None,
-                "gaze": self._last_applied.gaze.__dict__ if self._last_applied and self._last_applied.gaze else None,
+                "base": self._last_applied.base.__dict__
+                if self._last_applied and self._last_applied.base
+                else None,
+                "gaze": self._last_applied.gaze.__dict__
+                if self._last_applied and self._last_applied.gaze
+                else None,
             }
             if self._last_applied
             else None,

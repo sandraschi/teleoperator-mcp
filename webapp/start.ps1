@@ -1,11 +1,11 @@
-﻿param(
+param(
     [switch]$Headless,
     [switch]$BackendOnly,
     [switch]$FrontendOnly,
     [switch]$NoBrowser,
     [switch]$WithTailscaleServe,
-    [switch]$Detached
-)
+    [switch]$Detached,
+    [switch]$ReuseIfRunning)
 
 $ErrorActionPreference = "Stop"
 
@@ -19,6 +19,20 @@ if (-not (Test-Path -LiteralPath $FleetStartPath)) {
 $FleetStart = Initialize-FleetStartMode @PSBoundParameters
 Enter-FleetHeadlessConsole -Headless:$Headless -BackendOnly:$BackendOnly
 
+$portResolve = @{
+    Ports      = @($WebPort, $BackendPort)
+    Label      = "teleoperator-mcp"
+    AllowReuse = $ReuseIfRunning
+}
+if ($ReuseIfRunning) {
+    $portResolve.HealthChecks = @{
+        $WebPort = "http://127.0.0.1:$WebPort/"
+        $BackendPort = "http://127.0.0.1:$BackendPort/api/v1/health"
+    }
+}
+$portState = Resolve-FleetPortConflict @portResolve
+if ($portState.Action -eq 'Blocked') { exit 1 }
+if ($portState.Reuse) { return }
 $WebPort = 10900
 $BackendPort = 10901
 $HealthUrl = "http://127.0.0.1:${BackendPort}/api/v1/health"
@@ -102,7 +116,6 @@ Write-Host ""
 Write-Host "[TELEOPERATOR-MCP] WebXR gateway - web $WebPort / backend $BackendPort" -ForegroundColor Cyan
 
 Write-Host "[1/5] Port cleanup..." -ForegroundColor Cyan
-Stop-FleetPortSquatters -Ports @($WebPort, $BackendPort)
 
 Write-Host "[2/5] Python deps (uv sync)..." -ForegroundColor Cyan
 Push-Location $ProjectRoot

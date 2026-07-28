@@ -162,9 +162,7 @@ async def trigger_set_mode(
 
     if mode == "AUTO" and group == "base":
         arm_auto_timer()
-        asyncio.create_task(
-            speak_auto_start_warning(bench=confirm_bench and not session_active())
-        )
+        asyncio.create_task(speak_auto_start_warning(bench=confirm_bench and not session_active()))
 
     return {
         "success": True,
@@ -245,12 +243,15 @@ async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> N
     hands = payload.get("hands")
 
     include_gaze = (
-        settings.gaze_every_n_frames <= 1
-        or _stats.frames_in % settings.gaze_every_n_frames == 0
+        settings.gaze_every_n_frames <= 1 or _stats.frames_in % settings.gaze_every_n_frames == 0
     )
     human = get_arbiter().human
     command = human.from_pose_frame(
-        head, right, left, include_gaze=include_gaze, hands=hands if isinstance(hands, dict) else None
+        head,
+        right,
+        left,
+        include_gaze=include_gaze,
+        hands=hands if isinstance(hands, dict) else None,
     )
     arbiter = get_arbiter()
     arbiter.update_human(command)
@@ -335,7 +336,9 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
                 )
     except WebSocketDisconnect:
         logger.info("teleop session disconnected")
-        log_activity("teleop", "WebXR session disconnected", level="INFO", meta={"robot": _stats.robot})
+        log_activity(
+            "teleop", "WebXR session disconnected", level="INFO", meta={"robot": _stats.robot}
+        )
     finally:
         if watchdog_task:
             watchdog_task.cancel()

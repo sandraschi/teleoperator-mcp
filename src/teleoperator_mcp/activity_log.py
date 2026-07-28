@@ -18,7 +18,9 @@ SortOrder = Literal["asc", "desc"]
 _LEVEL_RANK = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
 
 _DEFAULT_MAX = 2000
-_max_entries = max(100, min(int(os.environ.get("TELEOP_LOG_MAX_ENTRIES", str(_DEFAULT_MAX))), 50_000))
+_max_entries = max(
+    100, min(int(os.environ.get("TELEOP_LOG_MAX_ENTRIES", str(_DEFAULT_MAX))), 50_000)
+)
 _lock = Lock()
 _entries: deque[dict[str, Any]] = deque(maxlen=_max_entries)
 
@@ -59,7 +61,9 @@ def clear_logs() -> None:
         _entries.clear()
 
 
-def _matches(entry: dict[str, Any], *, level: str | None, kind: str | None, search: str | None) -> bool:
+def _matches(
+    entry: dict[str, Any], *, level: str | None, kind: str | None, search: str | None
+) -> bool:
     if level:
         min_rank = _LEVEL_RANK.get(level.upper(), 0)
         if _LEVEL_RANK.get(str(entry.get("level", "INFO")), 0) < min_rank:

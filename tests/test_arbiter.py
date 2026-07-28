@@ -1,7 +1,7 @@
 """Authority arbiter tests."""
 
 from teleoperator_mcp.adapters.boomy import BoomyAdapter
-from teleoperator_mcp.arbiter.core import AuthorityArbiter, NAV_STUB_ID
+from teleoperator_mcp.arbiter.core import NAV_STUB_ID, AuthorityArbiter
 from teleoperator_mcp.producers.human_pose import HumanPoseProducer
 from teleoperator_mcp.producers.nav_stub import NavStubProducer
 from teleoperator_mcp.types import BaseCommand, ProducerCommand
@@ -9,7 +9,9 @@ from teleoperator_mcp.types import BaseCommand, ProducerCommand
 
 def _arbiter() -> AuthorityArbiter:
     adapter = BoomyAdapter()
-    return AuthorityArbiter(adapter, human=HumanPoseProducer(adapter), nav_stub=NavStubProducer(linear=0.1))
+    return AuthorityArbiter(
+        adapter, human=HumanPoseProducer(adapter), nav_stub=NavStubProducer(linear=0.1)
+    )
 
 
 def test_default_authority_is_direct_human() -> None:

@@ -128,10 +128,14 @@ class BoomyLiveKitPublisher:
 
         client = httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0))
         try:
-            mjpeg_ok = await self._publish_mjpeg_loop(client, room, video_source, rtc, width, height, interval)
+            mjpeg_ok = await self._publish_mjpeg_loop(
+                client, room, video_source, rtc, width, height, interval
+            )
             if not mjpeg_ok and settings.livekit_snapshot_fallback:
                 self.state.source = "snapshot"
-                await self._publish_snapshot_loop(client, video_source, rtc, width, height, interval)
+                await self._publish_snapshot_loop(
+                    client, video_source, rtc, width, height, interval
+                )
         finally:
             await client.aclose()
             self.state.connected = False

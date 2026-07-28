@@ -129,7 +129,9 @@ class SessionRecorder:
             "observation.head.yaw": float(head.get("yaw", 0.0)),
             "observation.head.pitch": float(head.get("pitch", 0.0)),
             "observation.head.roll": float(head.get("roll", 0.0)),
-            "observation.controller.trigger": float((right.get("buttons") or {}).get("trigger", 0.0)),
+            "observation.controller.trigger": float(
+                (right.get("buttons") or {}).get("trigger", 0.0)
+            ),
             "observation.controller.axes": list(right.get("axes") or []),
             "producer_id": command.producer_id,
             "authority": authority,

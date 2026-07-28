@@ -51,7 +51,9 @@ def test_start_log_end_writes_jsonl(recorder: SessionRecorder) -> None:
     assert info.exists()
 
 
-def test_recording_disabled_skips_start(recorder: SessionRecorder, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_recording_disabled_skips_start(
+    recorder: SessionRecorder, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(settings, "recording_enabled", False)
     assert recorder.start_session("boomy") is None
     assert recorder.state.active is False

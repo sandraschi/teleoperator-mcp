@@ -19,7 +19,11 @@ def _seed_episode(base: Path, robot_id: str = "vboomy") -> None:
         gaze=GazeCommand(pan=90.0, tilt=85.0),
     )
     rec.log_frame(
-        {"seq": 1, "head": {"yaw": 0.2, "pitch": -0.1, "roll": 0.0}, "right": {"buttons": {"trigger": 1.0}}},
+        {
+            "seq": 1,
+            "head": {"yaw": 0.2, "pitch": -0.1, "roll": 0.0},
+            "right": {"buttons": {"trigger": 1.0}},
+        },
         cmd,
     )
     rec.end_session()
@@ -45,7 +49,10 @@ def test_export_skips_empty_episode(tmp_path: Path) -> None:
     meta_dir = tmp_path / "meta"
     meta_dir.mkdir(parents=True)
     (meta_dir / "episodes.jsonl").write_text(
-        json.dumps({"episode_index": 0, "path": "data/episode_000000", "robot_id": "boomy", "length": 0}) + "\n",
+        json.dumps(
+            {"episode_index": 0, "path": "data/episode_000000", "robot_id": "boomy", "length": 0}
+        )
+        + "\n",
         encoding="utf-8",
     )
     (tmp_path / "data" / "episode_000000").mkdir(parents=True)

@@ -27,7 +27,8 @@ from .activity_log import (
     log_stats,
     query_logs,
 )
-from .runtime import robots_catalog
+from .adapters.registry import list_robots
+from .config import cors_origins_list, settings
 from .livekit import (
     get_publisher,
     issue_subscriber_token,
@@ -35,14 +36,15 @@ from .livekit import (
     start_publisher,
     stop_publisher,
 )
+from .runtime import robots_catalog
 from .ws.handler import (
     disconnect_all,
     session_stats,
     teleop_websocket,
     trigger_estop,
-    trigger_set_mode,
-    trigger_set_gaze,
     trigger_gaze_center,
+    trigger_set_gaze,
+    trigger_set_mode,
     trigger_takeover,
 )
 
@@ -112,7 +114,9 @@ async def teleop_set_mode(group: str, mode: str, confirm_bench: bool = False) ->
 
     AUTO on base requires an active WebXR session unless confirm_bench=true (blocks only, timed stop).
     """
-    return await trigger_set_mode(group=group.lower(), mode=mode.upper(), confirm_bench=confirm_bench)
+    return await trigger_set_mode(
+        group=group.lower(), mode=mode.upper(), confirm_bench=confirm_bench
+    )
 
 
 @mcp.tool()
@@ -159,6 +163,51 @@ async def teleop_livekit_publisher_stop() -> dict:
     return result
 
 
+@mcp.tool()
+async def show_teleop_status_card() -> dict:
+    """Show Teleoperator robot status and connection health as a rich card.
+
+    Renders a Prefab App card with robot catalog, session state, LiveKit status,
+    and authority mode for each actuator group.
+    """
+    stats = session_stats()
+    livekit = get_publisher().status()
+    robots = list_robots()
+
+    try:
+        from prefab_ui import PrefabApp, ToolResult
+
+        card = PrefabApp()
+        mode = stats.get("authority", {}).get("base", "IDLE")
+        card.add_header("Teleoperator — Robot Status", subtitle=f"Mode: {mode}")
+        card.add_stat_grid(
+            [
+                ("Active", "Yes" if stats.get("active") else "No"),
+                ("Frames In", str(stats.get("frames_in", 0))),
+                ("Robot", stats.get("robot", "none")),
+                ("WebXR", "Connected" if stats.get("has_webxr") else "Idle"),
+                ("LiveKit", "Running" if livekit.get("running") else "Stopped"),
+            ]
+        )
+        robot_lines = []
+        for rid, meta in robots.items():
+            twin = "  virtual" if meta.get("virtual_twin") else ""
+            robot_lines.append(f"{rid}: {meta.get('display_name', rid)}{twin}")
+        if robot_lines:
+            card.add_section("Available Robots")
+            for line in robot_lines:
+                card.add_text(line)
+        return ToolResult(content=str(card), structured_content=card)
+    except ImportError:
+        return {
+            "success": True,
+            "message": "Teleoperator robot status",
+            "session": stats,
+            "livekit": livekit,
+            "robots": robots,
+        }
+
+
 class LiveKitTokenBody(BaseModel):
     identity: str = Field(min_length=1, max_length=128)
     room: str | None = None
@@ -172,7 +221,7 @@ class RecordingExportBody(BaseModel):
     overwrite: bool = False
 
 
-_mcp_http = mcp.http_app()
+_mcp_http = mcp.http_app(path="/")
 
 
 @asynccontextmanager
@@ -278,7 +327,9 @@ async def api_teleop_set_mode(
     confirm_bench: bool = False,
 ) -> dict:
     """REST mirror of teleop_set_mode for bench scripts (hits live server state)."""
-    return await trigger_set_mode(group=group.lower(), mode=mode.upper(), confirm_bench=confirm_bench)
+    return await trigger_set_mode(
+        group=group.lower(), mode=mode.upper(), confirm_bench=confirm_bench
+    )
 
 
 @app.post("/api/v1/teleop/estop")
@@ -364,14 +415,81 @@ async def api_recording_export(body: RecordingExportBody | None = None) -> dict:
     return export_summary(result)
 
 
+@app.get("/api/llm/providers")
+async def llm_providers() -> dict:
+    import httpx
+
+    models: list[str] = []
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.get("http://localhost:11434/api/tags")
+            for m in r.json().get("models", []):
+                name = m.get("name", "")
+                if name:
+                    models.append(name)
+    except Exception:
+        pass
+    return {"providers": [{"name": "ollama", "models": models}]}
+
+
+@app.post("/api/llm/chat")
+async def llm_chat(body: dict) -> dict:
+    import httpx
+
+    model = body.get("model", "gemma3:1b")
+    prompt = body.get("prompt", "")
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            r = await client.post(
+                "http://localhost:11434/api/generate",
+                json={"model": model, "prompt": prompt, "stream": False},
+            )
+            data = r.json()
+            return {"response": data.get("response", "")}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/api/v1/health")
 async def health() -> dict:
     return {
         "status": "ok",
         "service": "teleoperator-mcp",
+        "version": "0.1.0",
         "uptime_s": round(time.time() - start_time, 1),
         "teleop": session_stats(),
         "livekit": get_publisher().status(),
+    }
+
+
+@app.get("/api/v1/diagnostics")
+async def diagnostics() -> dict:
+    """Diagnostics endpoint for CUA-NSIS smoke testing."""
+    robots = list_robots()
+    tools = [
+        {"name": "teleop_status"},
+        {"name": "teleop_configure"},
+        {"name": "teleop_estop"},
+        {"name": "teleop_set_mode"},
+        {"name": "teleop_takeover"},
+        {"name": "teleop_set_gaze"},
+        {"name": "teleop_gaze_center"},
+        {"name": "teleop_livekit_status"},
+        {"name": "teleop_livekit_publisher_start"},
+        {"name": "teleop_livekit_publisher_stop"},
+        {"name": "show_teleop_status_card"},
+    ]
+    return {
+        "status": "ok",
+        "server": "teleoperator-mcp",
+        "version": "0.1.0",
+        "uptime_seconds": round(time.time() - start_time, 1),
+        "tool_count": len(tools),
+        "tools": tools,
+        "system": {"windows": True},
+        "errors": [],
+        "teleop": session_stats(),
+        "robot_catalog": list(robots.keys()),
     }
 
 

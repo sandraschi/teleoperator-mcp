@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { API_BASE } from "../lib/api";
 import type { LogEntry, LogsResponse } from "../lib/types";
 
 const LEVELS = ["", "DEBUG", "INFO", "WARNING", "ERROR"];
@@ -31,8 +32,8 @@ export function LogsPage() {
       if (liveTail && afterId) params.set("after_id", afterId);
 
       const [logsRes, statsRes] = await Promise.all([
-        fetch(`/api/logs?${params}`),
-        fetch("/api/logs/stats"),
+        fetch(API_BASE + `/api/logs?${params}`),
+        fetch(API_BASE + "/api/logs/stats"),
       ]);
       const logs = (await logsRes.json()) as LogsResponse;
       setData(logs);
@@ -67,7 +68,7 @@ export function LogsPage() {
 
   const clearLogs = async () => {
     if (!window.confirm("Clear all log entries?")) return;
-    await fetch("/api/logs", { method: "DELETE" });
+    await fetch(API_BASE + "/api/logs", { method: "DELETE" });
     setAfterId(null);
     void load();
   };

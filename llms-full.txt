@@ -1,0 +1,212 @@
+# Teleoperator MCP — LLM full manifest
+
+Version **0.1.0** (see `pyproject.toml`). Stack: **Python 3.12+**, **FastMCP >=3.2**, **FastAPI**, **WebSocket**, **LiveKit**, **WebXR**.
+
+Ports: Frontend **10900** (Vite), Backend **10901** (FastAPI + MCP HTTP + WebSocket).
+
+---
+
+## Tools
+
+### teleop_status
+
+Returns active WebXR teleop session status: connection state, frame count, robot target. No arguments.
+
+### teleop_configure
+
+Adjust teleop mapping gains and downstream robot API URL at runtime. Args: `max_linear`, `max_angular`, `pan_gain`, `tilt_gain`, `yahboom_api_url`.
+
+### teleop_estop
+
+Hard stop — zero drive on all actuator groups. Operator/agent veto. No arguments.
+
+### teleop_set_mode
+
+Set actuator group authority: DIRECT (human) or AUTO (nav stub). Groups: base, gaze, manip. Args: `group`, `mode`, `confirm_bench`.
+
+### teleop_takeover
+
+Human reclaims authority on one group or all available groups. Clears estop latch. Args: `group`.
+
+### teleop_set_gaze
+
+Move Boomy camera to absolute pan/tilt (0-180 deg, center ~90). Args: `pan`, `tilt`.
+
+### teleop_gaze_center
+
+Center camera servos (neutral head-follow reference). No arguments.
+
+### teleop_livekit_status
+
+LiveKit video return status (publisher + room config). No arguments.
+
+### teleop_livekit_publisher_start
+
+Start Goliath-side MJPEG to LiveKit publisher for Boomy camera. No arguments.
+
+### teleop_livekit_publisher_stop
+
+Stop LiveKit camera publisher. No arguments.
+
+### show_teleop_status_card
+
+Show Teleoperator robot status and connection health as a rich Prefab App card. Robot catalog, session state, LiveKit status, authority mode. No arguments.
+
+---
+
+## REST API endpoints (FastAPI)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/v1/health | Backend health + teleop + LiveKit status |
+| GET | /api/v1/diagnostics | Diagnostics for CUA-NSIS smoke tests |
+| GET | /api/capabilities | Fleet webapp introspection |
+| GET | /api/logs | Ring-buffer log query (limit, offset, level, kind, search, sort) |
+| GET | /api/logs/stats | Log buffer stats (total, max_entries, rotation) |
+| GET | /api/logs/export | Export logs as JSON or CSV |
+| DELETE | /api/logs | Clear ring-buffer log |
+| GET | /api/v1/robots | Robot adapter catalog |
+| GET | /api/v1/livekit/config | Public LiveKit connection info |
+| POST | /api/v1/livekit/token | Issue subscriber JWT |
+| GET | /api/v1/livekit/status | LiveKit publisher status |
+| POST | /api/v1/livekit/publisher/start | Start camera publisher |
+| POST | /api/v1/livekit/publisher/stop | Stop camera publisher |
+| POST | /api/v1/teleop/estop | REST mirror of teleop_estop |
+| POST | /api/v1/teleop/takeover | REST mirror of teleop_takeover |
+| POST | /api/v1/teleop/gaze | REST mirror of teleop_set_gaze |
+| POST | /api/v1/teleop/gaze/center | REST mirror of teleop_gaze_center |
+| POST | /api/v1/teleop/set_mode | REST mirror of teleop_set_mode |
+| POST | /api/v1/recording/export | Export JSONL to LeRobot parquet |
+| GET | /api/llm/providers | Local LLM provider discovery (Ollama) |
+| POST | /api/llm/chat | Local LLM chat completion |
+| WS | /ws/teleop | WebSocket teleop pose stream (?robot= param) |
+| | /mcp | FastMCP HTTP transport (streamable) |
+
+---
+
+## Environment variables
+
+All prefixed with `TELEOP_` (loaded from .env). Key vars:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| TELEOP_HOST | 0.0.0.0 | Backend bind address |
+| TELEOP_PORT | 10901 | Backend port |
+| TELEOP_YAHBOOM_API_URL | http://127.0.0.1:10892 | Boomy robot REST API |
+| TELEOP_CORS_ORIGINS | localhost:10900... | Allowed browser origins |
+| TELEOP_WATCHDOG_MS | 1000 | Watchdog interval |
+| TELEOP_POSE_HZ_CAP | 30 | Max pose update rate |
+| TELEOP_MAX_LINEAR | 0.3 | Max linear velocity m/s |
+| TELEOP_MAX_ANGULAR | 0.8 | Max angular velocity rad/s |
+| TELEOP_PAN_GAIN | 60.0 | PTZ pan gain |
+| TELEOP_TILT_GAIN | 45.0 | PTZ tilt gain |
+| TELEOP_DEFAULT_ROBOT | boomy | Default WS robot |
+| TELEOP_RECORDING_ENABLED | 1 | LeRobot JSONL recording |
+| TELEOP_LIVEKIT_ENABLED | 1 | LiveKit video return |
+| TELEOP_LIVEKIT_URL | ws://127.0.0.1:15580 | LiveKit server |
+| TELEOP_LIVEKIT_ROOM | teleop-boomy | LiveKit room name |
+| TELEOP_AUTO_MAX_DURATION_S | 10 | AUTO mode max seconds |
+| TELEOP_AUTO_REQUIRE_WEBXR | 1 | WebXR required for AUTO |
+| TELEOP_SPEECH_ENABLED | 1 | Spoken warnings |
+| TELEOP_SPEECH_MCP_URL | http://127.0.0.1:10909 | speech-mcp endpoint |
+
+---
+
+## Architecture
+
+```
+WebXR headset (Pico/Quest)
+    |   WebSocket /ws/teleop?robot=boomy
+    v
+FastAPI gateway (port 10901)
+    |--- FastMCP tools over HTTP /mcp
+    |--- REST API /api/v1/*
+    |--- WebSocket handler -> HumanPoseProducer -> RobotAdapter
+                                   |
+                         +---------+---------+
+                         |         |         |
+                     Boomy      Bumi      Vboomy
+                   (Yahboom)  (biped)   (Resonite OSC)
+
+    LiveKit publisher (MJPEG -> LiveKit SFU -> WebXR headset)
+    Recording pipeline (JSONL -> LeRobot v2.1 parquet)
+    Safety governor (AUTO timer, WebXR gate, spoken warnings)
+    Authority arbiter (DIRECT vs AUTO per actuator group)
+```
+
+---
+
+## Robot adapters
+
+Three active adapters, configurable via `?robot=` WebSocket parameter:
+
+| Adapter | Robot ID | Platform | Capabilities |
+|---------|----------|----------|-------------|
+| BoomyAdapter | boomy | Yahboom ROSMASTER X3 | Base drive, PTZ gaze, head-follow |
+| BumiAdapter | bumi | Bumi biped (bumi-mcp) | Base drive, legs, arms, head |
+| VboomyAdapter | vboomy | Resonite OSC | Virtual twin on Resonite (port 9000) |
+
+Planned: r1-a5-d (Unitree R1-A5-D wheeled dual-arm).
+
+---
+
+## Run
+
+### MCP stdio (typical IDE)
+```
+uv run python -m teleoperator_mcp.server --mode stdio
+```
+
+### HTTP dual (full stack)
+```
+uv run python -m teleoperator_mcp.server --mode dual --port 10901
+```
+
+### Web dashboard (separate terminal, from webapp/)
+```
+cd webapp && npm run dev
+```
+
+### Claude Desktop config (uvx)
+```json
+{
+  "mcpServers": {
+    "teleoperator-mcp": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/teleoperator-mcp", "python", "-m", "teleoperator_mcp.server", "--mode", "stdio"]
+    }
+  }
+}
+```
+
+---
+
+## WebXR session
+
+1. Open frontend at http://localhost:10900 on Pico 4 / Meta Quest browser
+2. Select robot (boomy, bumi, vboomy)
+3. Click "Enter VR" -> WebXR immersive-vr session starts
+4. Headset pose streamed over WebSocket to robot adapter
+5. Camera view returned via LiveKit (Boomy) or robot-native stream
+
+---
+
+## Troubleshooting
+
+1. **WebXR not available** - Browser does not support immersive-vr. Use Pico 4 / Quest with HTTPS via Tailscale Serve.
+2. **Robot not moving** - Check yahboom-mcp (port 10892) is running. Verify robot power.
+3. **LiveKit no video** - Verify LiveKit SFU at ws://127.0.0.1:15580 is running. Check publisher logs.
+4. **WebSocket disconnects** - Check watchdog interval. Network latency may exceed watchdog.
+5. **AUTO mode fails** - WebXR session required unless confirm_bench=true. Max 10s duration.
+
+---
+
+## Fleet integration
+
+- **Ports**: 10900 (frontend), 10901 (backend) per WEBAPP_PORTS.md
+- **MCP HTTP**: Streamable at http://127.0.0.1:10901/mcp
+- **WebSocket**: /ws/teleop
+- **speech-mcp**: Optional spoken warnings (port 10909)
+- **yahboom-mcp**: Robot hardware bridge (port 10892)
+- **bumi-mcp**: Biped robot bridge (port 10774)
+- **resonite-mcp**: Virtual twin via OSC (port 10979)

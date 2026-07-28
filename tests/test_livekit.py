@@ -1,9 +1,9 @@
 """LiveKit token and MJPEG helpers."""
 
+import numpy as np
 import pytest
 
 from teleoperator_mcp.livekit.mjpeg import extract_jpeg_frames, rgb_to_i420
-import numpy as np
 
 
 def test_extract_jpeg_frames_single() -> None:

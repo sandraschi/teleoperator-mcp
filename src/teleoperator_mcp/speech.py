@@ -38,7 +38,7 @@ async def _windows_sapi(text: str) -> bool:
     safe = text.replace('"', "'").replace("`", "'")
     cmd = (
         "Add-Type -AssemblyName System.Speech; "
-        f"$s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak(\"{safe}\")"
+        f'$s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak("{safe}")'
     )
     try:
         proc = await asyncio.create_subprocess_exec(

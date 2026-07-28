@@ -7,6 +7,7 @@ import { HomePage } from "./pages/HomePage";
 import { LogsPage } from "./pages/LogsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ToolsPage } from "./pages/ToolsPage";
+import FloatingChat from "./components/FloatingChat";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="help" element={<HelpPage />} />
           </Route>
         </Routes>
+        <FloatingChat />
       </HashRouter>
     </CapabilitiesProvider>
   );

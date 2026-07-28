@@ -1,0 +1,47 @@
+{
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "Teleoperator MCP",
+	"version": "0.1.0",
+	"identifier": "ai.fleet.teleoperator-mcp",
+	"build": {
+		"frontendDist": "../webapp/dist"
+	},
+	"app": {
+		"windows": [
+			{
+				"label": "main",
+				"title": "Teleoperator MCP",
+				"width": 1280,
+				"height": 860,
+				"resizable": true
+			}
+		],
+		"security": {
+			"csp": null
+		}
+	},
+	"bundle": {
+		"active": true,
+		"targets": ["nsis"],
+		"icon": ["icons/icon.png", "icons/icon.ico"],
+		"resources": [
+			"resources/teleoperator-mcp-backend.exe",
+            "resources/.env.example",
+			"../scripts/install-mcp-clients.ps1"
+		],
+		"windows": {
+			"webviewInstallMode": {
+				"type": "skip"
+			},
+			"nsis": {
+				"installMode": "currentUser",
+				"installerHooks": "./windows/hooks.nsh"
+			}
+		}
+	},
+	"plugins": {}
+}
+
+
+
+
