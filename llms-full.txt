@@ -52,6 +52,10 @@ Stop LiveKit camera publisher. No arguments.
 
 Show Teleoperator robot status and connection health as a rich Prefab App card. Robot catalog, session state, LiveKit status, authority mode. No arguments.
 
+### teleop_shutdown
+
+Gracefully shut down the teleoperator server: stops LiveKit publisher, disconnects WebXR clients, exits. Args: `confirm` (MUST be `true`).
+
 ---
 
 ## REST API endpoints (FastAPI)
@@ -77,6 +81,7 @@ Show Teleoperator robot status and connection health as a rich Prefab App card. 
 | POST | /api/v1/teleop/gaze/center | REST mirror of teleop_gaze_center |
 | POST | /api/v1/teleop/set_mode | REST mirror of teleop_set_mode |
 | POST | /api/v1/recording/export | Export JSONL to LeRobot parquet |
+| POST | /api/shutdown | Graceful shutdown (confirm=true) |
 | GET | /api/llm/providers | Local LLM provider discovery (Ollama) |
 | POST | /api/llm/chat | Local LLM chat completion |
 | WS | /ws/teleop | WebSocket teleop pose stream (?robot= param) |
@@ -109,6 +114,10 @@ All prefixed with `TELEOP_` (loaded from .env). Key vars:
 | TELEOP_AUTO_REQUIRE_WEBXR | 1 | WebXR required for AUTO |
 | TELEOP_SPEECH_ENABLED | 1 | Spoken warnings |
 | TELEOP_SPEECH_MCP_URL | http://127.0.0.1:10909 | speech-mcp endpoint |
+| TELEOP_LIVEKIT_PUBLIC_URL | (empty) | Headset WSS URL on Tailscale (empty → LIVEKIT_URL) |
+| TELEOP_LIVEKIT_API_KEY / SECRET | devkey / secret | Must match LiveKit SFU keys |
+| TELEOP_LIVEKIT_SNAPSHOT_FALLBACK | 1 | Poll snapshots if MJPEG fails |
+| TELEOP_LIVEKIT_AUTO_START_PUBLISHER | 0 | Auto-start publisher at boot |
 
 ---
 
@@ -195,7 +204,7 @@ cd webapp && npm run dev
 
 1. **WebXR not available** - Browser does not support immersive-vr. Use Pico 4 / Quest with HTTPS via Tailscale Serve.
 2. **Robot not moving** - Check yahboom-mcp (port 10892) is running. Verify robot power.
-3. **LiveKit no video** - Verify LiveKit SFU at ws://127.0.0.1:15580 is running. Check publisher logs.
+3. **LiveKit no video** - Verify LiveKit SFU service (`Get-Service LiveKitSFU`, port 15580) is running. Check publisher logs at `myconf/logs/livekit.out.log`.
 4. **WebSocket disconnects** - Check watchdog interval. Network latency may exceed watchdog.
 5. **AUTO mode fails** - WebXR session required unless confirm_bench=true. Max 10s duration.
 
@@ -210,3 +219,5 @@ cd webapp && npm run dev
 - **yahboom-mcp**: Robot hardware bridge (port 10892)
 - **bumi-mcp**: Biped robot bridge (port 10774)
 - **resonite-mcp**: Virtual twin via OSC (port 10979)
+- **LiveKit SFU**: Windows service `LiveKitSFU` (native livekit-server 1.7.0, myconf/livekit.yaml, port 15580)
+- **Integration test**: `just integration-test` — headless WS harness proving the pose pipeline against the live stack

@@ -1,5 +1,20 @@
 
-## [Unreleased] — 2026-08-03
+## [Unreleased] — 2026-08-03 (session 2)
+
+### Added
+- LiveKit SFU is now a **Windows service** (`LiveKitSFU`, NSSM, native livekit-server 1.7.0 + myconf/livekit.yaml, auto-start, crash-restart). Docker no longer required for video return
+- `scripts/ws-integration-harness.py` + `just integration-test` — headless WS harness proving the pose pipeline against the live stack (12 checks: handshake, acks, estop, authority, recording on disk, watchdog)
+- `scripts/start-stack-detached.ps1`, `scripts/launch-*.cmd` — detached stack launchers
+- `scripts/install-livekit-service.ps1` / `scripts/start-livekit-service.ps1` — NSSM service install/start (elevated)
+
+### Fixed
+- Tool docstrings: `## Return Format` corrected to match actual handler shapes (verified against ws/handler.py, arbiter, livekit publisher) — `teleop_status`, `teleop_estop`, `teleop_set_mode`, `teleop_takeover`, livekit tools
+
+### Verified
+- LiveKit publisher connects to the SFU service: room `teleop-boomy`, participant `teleop-publisher`, video track `boomy-camera` 640x480 VP8 published (WebRTC over Tailscale). MJPEG → snapshot fallback degrades correctly when Boomy camera is off
+- Headless harness 12/12 vs live stack; drive/gaze commands reach yahboom-mcp (503 when robot offline, correct)
+
+## [Unreleased] — 2026-08-03 (session 1)
 
 ### Added
 - `teleop_shutdown` MCP tool + `POST /api/shutdown` REST endpoint for graceful server termination

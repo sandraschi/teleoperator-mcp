@@ -61,7 +61,7 @@ They are **independent**. You can drive without video (gray plane). You can publ
 | yahboom-mcp | Goliath (talks to Pi) | `just serve` in yahboom-mcp |
 | teleoperator backend | Goliath | `scripts/restart-backend.ps1` |
 | teleoperator webapp | Goliath | `just web` or m1-up |
-| **LiveKit SFU** | Goliath (Docker) | `docker compose up -d livekit` in **myconf** |
+| **LiveKit SFU** | Goliath (**Windows service** `LiveKitSFU`) | NSSM, auto-start (native `livekit-server` 1.7.0 + `myconf/livekit.yaml`) |
 | **LiveKit publisher** | Goliath (inside teleoperator) | `scripts/start-livekit-publisher.ps1` or MCP `teleop_livekit_publisher_start` |
 | WebXR + video client | Pico / Quest browser | User taps **Enter VR** |
 
@@ -79,12 +79,22 @@ Work top to bottom. Stop when a step fails and use [Troubleshooting](#troublesho
 
 ### Step 1 — LiveKit server
 
+The SFU runs as a **Windows service** (`LiveKitSFU`), installed once with NSSM and
+auto-starting with Windows. Binary: `livekit-server` 1.7.0 (native, pinned to match
+myconf's Dockerfile), config from `myconf/livekit.yaml`.
+
 ```powershell
-Set-Location D:\Dev\repos\myconf
-docker compose up -d livekit
+# Verify service (should be Running, Automatic)
+Get-Service LiveKitSFU
+
+# Logs (rotated by NSSM)
+Get-Content D:\Dev\repos\myconf\logs\livekit.out.log -Tail 50
+
+# Reinstall/repair service (elevated — UAC prompt)
+powershell -ExecutionPolicy Bypass -File D:\Dev\repos\teleoperator-mcp\scripts\install-livekit-service.ps1
 ```
 
-**Expect:** container healthy; port **15580** listening on Goliath.
+**Expect:** service `Running`; port **15580** listening on Goliath.
 
 **Keys must match:** myconf `livekit.yaml` uses `devkey` / `secret` by default — same as teleoperator `.env`.
 
@@ -193,9 +203,9 @@ Read the symptom, not the stack trace first.
 
 ### “Publisher won't start / connected: false”
 
-1. Is LiveKit up? `docker ps` in myconf
+1. Is LiveKit up? `Get-Service LiveKitSFU` (service must be Running). If stopped: `sc.exe start LiveKitSFU` (elevated) — NSSM auto-restarts on crash.
 2. Do keys match `.env` vs `livekit.yaml`?
-3. **STUN format (2026-06-04):** `livekit.yaml` must use `stun.l.google.com:19302` — **not** `stun:stun.l.google.com:19302` (causes HTTP 500 on `/rtc`). Rebuild: `docker compose -f docker-compose.yaml up -d --build livekit`
+3. **STUN format (2026-06-04):** `livekit.yaml` must use `stun.l.google.com:19302` — **not** `stun:stun.l.google.com:19302` (causes HTTP 500 on `/rtc`). Edit `myconf/livekit.yaml`, then restart the service: `Restart-Service LiveKitSFU` (elevated).
 4. Run `uv sync` in teleoperator-mcp (needs `livekit` Python packages)
 5. Read `last_error` in `/api/v1/livekit/status`
 

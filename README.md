@@ -104,6 +104,8 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 | `teleop_gaze_center` | shipped |
 | `teleop_livekit_status` | shipped (M5) |
 | `teleop_livekit_publisher_start` / `_stop` | shipped (M5) |
+| `show_teleop_status_card` | shipped (Prefab) |
+| `teleop_shutdown` | shipped |
 | `teleop_task_dispatch` | planned |
 
 ---
@@ -137,6 +139,7 @@ just test
 just ci      # same gates as GitHub Actions (Windows)
 just serve
 just web
+just integration-test   # headless WS harness vs live stack (needs backend up)
 ```
 
 ---
