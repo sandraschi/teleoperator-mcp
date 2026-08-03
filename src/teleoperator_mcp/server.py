@@ -10,6 +10,7 @@ import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Annotated
 
 import uvicorn
 from fastapi import FastAPI, Query, Request, WebSocket
@@ -61,7 +62,16 @@ mcp = FastMCP("Teleoperator MCP")
 
 @mcp.tool()
 async def teleop_status() -> dict:
-    """Active WebXR teleop session status (connection, frame count, robot target)."""
+    """Active WebXR teleop session status (connection, frame count, robot target).
+
+    ## Return Format
+    {"success": bool, "message": str, "active": bool, "frames_in": int,
+     "robot": str, "has_webxr": bool, "authority": dict, "webxr_clients": int,
+     "yahboom_api": str, "watchdog_ms": int}
+
+    ## Examples
+    teleop_status()
+    """
     stats = session_stats()
     return {
         "success": True,
@@ -74,13 +84,24 @@ async def teleop_status() -> dict:
 
 @mcp.tool()
 async def teleop_configure(
-    max_linear: float | None = None,
-    max_angular: float | None = None,
-    pan_gain: float | None = None,
-    tilt_gain: float | None = None,
-    yahboom_api_url: str | None = None,
+    max_linear: Annotated[float | None, Field(description="Linear speed cap (m/s)")] = None,
+    max_angular: Annotated[float | None, Field(description="Angular speed cap (rad/s)")] = None,
+    pan_gain: Annotated[float | None, Field(description="Camera pan gain factor")] = None,
+    tilt_gain: Annotated[float | None, Field(description="Camera tilt gain factor")] = None,
+    yahboom_api_url: Annotated[
+        str | None, Field(description="Override yahboom-mcp REST URL")
+    ] = None,
 ) -> dict:
-    """Adjust teleop mapping gains and downstream robot API URL (runtime)."""
+    """Adjust teleop mapping gains and downstream robot API URL (runtime).
+
+    ## Return Format
+    {"success": bool, "message": str, "max_linear": float, "max_angular": float,
+     "pan_gain": float, "tilt_gain": float, "yahboom_api_url": str}
+
+    ## Examples
+    teleop_configure(max_linear=0.2, pan_gain=90.0)
+    teleop_configure(yahboom_api_url="http://192.168.1.100:10892")
+    """
     if max_linear is not None:
         settings.max_linear = max_linear
     if max_angular is not None:
@@ -104,7 +125,14 @@ async def teleop_configure(
 
 @mcp.tool()
 async def teleop_estop() -> dict:
-    """Hard stop: zero drive on all actuator groups. Operator/agent veto."""
+    """Hard stop: zero drive on all actuator groups. Operator/agent veto.
+
+    ## Return Format
+    {"success": bool, "message": str, "estop": bool}
+
+    ## Examples
+    teleop_estop()
+    """
     return await trigger_estop(reason="mcp")
 
 
@@ -113,6 +141,13 @@ async def teleop_set_mode(group: str, mode: str, confirm_bench: bool = False) ->
     """Set actuator group authority: DIRECT (human) or AUTO (nav stub). Groups: base, gaze, manip.
 
     AUTO on base requires an active WebXR session unless confirm_bench=true (blocks only, timed stop).
+
+    ## Return Format
+    {"success": bool, "message": str, "group": str, "mode": str, "previous": str}
+
+    ## Examples
+    teleop_set_mode(group="base", mode="AUTO", confirm_bench=True)
+    teleop_set_mode(group="gaze", mode="DIRECT")
     """
     return await trigger_set_mode(
         group=group.lower(), mode=mode.upper(), confirm_bench=confirm_bench
@@ -121,26 +156,56 @@ async def teleop_set_mode(group: str, mode: str, confirm_bench: bool = False) ->
 
 @mcp.tool()
 async def teleop_takeover(group: str | None = None) -> dict:
-    """Human reclaims authority on one group or all available groups. Clears estop latch."""
+    """Human reclaims authority on one group or all available groups. Clears estop latch.
+
+    ## Return Format
+    {"success": bool, "message": str, "group": str | None, "groups_reset": [str]}
+
+    ## Examples
+    teleop_takeover()                        # reclaim all groups
+    teleop_takeover(group="base")            # reclaim base only
+    """
     g = group.lower() if group else None
     return await trigger_takeover(group=g)
 
 
 @mcp.tool()
 async def teleop_set_gaze(pan: float, tilt: float) -> dict:
-    """Move Boomy camera to absolute pan/tilt (0-180°, center ~90). Bench + head-follow prep."""
+    """Move Boomy camera to absolute pan/tilt (0-180 deg, center ~90). Bench + head-follow prep.
+
+    ## Return Format
+    {"success": bool, "message": str, "pan": float, "tilt": float}
+
+    ## Examples
+    teleop_set_gaze(pan=90, tilt=90)         # center
+    teleop_set_gaze(pan=120, tilt=60)         # look up-right
+    """
     return await trigger_set_gaze(pan=pan, tilt=tilt)
 
 
 @mcp.tool()
 async def teleop_gaze_center() -> dict:
-    """Center camera servos (neutral head-follow reference)."""
+    """Center camera servos (neutral head-follow reference).
+
+    ## Return Format
+    {"success": bool, "message": str, "pan": float, "tilt": float}
+
+    ## Examples
+    teleop_gaze_center()
+    """
     return await trigger_gaze_center()
 
 
 @mcp.tool()
 async def teleop_livekit_status() -> dict:
-    """LiveKit video return status (publisher + room config)."""
+    """LiveKit video return status (publisher + room config).
+
+    ## Return Format
+    {"success": bool, "message": str, "config": dict, "running": bool, "room": str}
+
+    ## Examples
+    teleop_livekit_status()
+    """
     return {
         "success": True,
         "message": "LiveKit status",
@@ -151,36 +216,56 @@ async def teleop_livekit_status() -> dict:
 
 @mcp.tool()
 async def teleop_livekit_publisher_start() -> dict:
-    """Start Goliath-side MJPEG → LiveKit publisher for Boomy camera."""
+    """Start Goliath-side MJPEG to LiveKit publisher for Boomy camera.
+
+    ## Return Format
+    {"success": bool, "message": str, "running": bool}
+
+    ## Examples
+    teleop_livekit_publisher_start()
+    """
     result = await start_publisher()
     return result
 
 
 @mcp.tool()
 async def teleop_livekit_publisher_stop() -> dict:
-    """Stop LiveKit camera publisher."""
+    """Stop LiveKit camera publisher.
+
+    ## Return Format
+    {"success": bool, "message": str, "running": bool}
+
+    ## Examples
+    teleop_livekit_publisher_stop()
+    """
     result = await stop_publisher()
     return result
 
 
 @mcp.tool()
 async def show_teleop_status_card() -> dict:
-    """Show Teleoperator robot status and connection health as a rich card.
+    """Show Teleoperator robot status and connection health as a rich Prefab card.
 
     Renders a Prefab App card with robot catalog, session state, LiveKit status,
     and authority mode for each actuator group.
+
+    ## Return Format
+    PrefabApp card (in-chat rich UI) or dict fallback if prefab_ui unavailable.
+
+    ## Examples
+    show_teleop_status_card()
     """
     stats = session_stats()
     livekit = get_publisher().status()
     robots = list_robots()
 
     try:
-        from prefab_ui import PrefabApp, ToolResult
+        from prefab_ui import PrefabApp, ToolResult  # type: ignore[reportAttributeAccessIssue]
 
         card = PrefabApp()
         mode = stats.get("authority", {}).get("base", "IDLE")
-        card.add_header("Teleoperator — Robot Status", subtitle=f"Mode: {mode}")
-        card.add_stat_grid(
+        card.add_header("Teleoperator — Robot Status", subtitle=f"Mode: {mode}")  # type: ignore[reportAttributeAccessIssue]
+        card.add_stat_grid(  # type: ignore[reportAttributeAccessIssue]
             [
                 ("Active", "Yes" if stats.get("active") else "No"),
                 ("Frames In", str(stats.get("frames_in", 0))),
@@ -194,9 +279,9 @@ async def show_teleop_status_card() -> dict:
             twin = "  virtual" if meta.get("virtual_twin") else ""
             robot_lines.append(f"{rid}: {meta.get('display_name', rid)}{twin}")
         if robot_lines:
-            card.add_section("Available Robots")
+            card.add_section("Available Robots")  # type: ignore[reportAttributeAccessIssue]
             for line in robot_lines:
-                card.add_text(line)
+                card.add_text(line)  # type: ignore[reportAttributeAccessIssue]
         return ToolResult(content=str(card), structured_content=card)
     except ImportError:
         return {
@@ -206,6 +291,31 @@ async def show_teleop_status_card() -> dict:
             "livekit": livekit,
             "robots": robots,
         }
+
+
+@mcp.tool()
+async def teleop_shutdown(
+    confirm: Annotated[bool, Field(description="Confirm shutdown — MUST be True")] = False,
+) -> dict:
+    """Gracefully shut down the teleoperator server.
+
+    Stops LiveKit publisher, disconnects all WebXR clients, and terminates the process.
+
+    ## Return Format
+    {"success": bool, "message": str}
+
+    ## Examples
+    teleop_shutdown(confirm=True)
+    """
+
+    if not confirm:
+        return {"success": False, "message": "Pass confirm=True to shut down the server"}
+    await stop_publisher()
+    await disconnect_all()
+    logger.info("Teleoperator MCP shutting down via teleop_shutdown")
+    import os
+
+    os._exit(0)
 
 
 class LiveKitTokenBody(BaseModel):
@@ -242,6 +352,7 @@ app = FastAPI(title="Teleoperator MCP", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins_list(),
+    allow_origin_regex=r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|tauri\.localhost|localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -462,6 +573,19 @@ async def health() -> dict:
     }
 
 
+@app.post("/api/shutdown")
+async def api_shutdown(confirm: bool = False) -> dict:
+    """Gracefully shut down this server. Requires confirm=true."""
+    if not confirm:
+        return {"success": False, "message": "Pass confirm=true to shut down"}
+    await stop_publisher()
+    await disconnect_all()
+    logger.info("Teleoperator MCP shutting down via REST /api/shutdown")
+    import os
+
+    os._exit(0)
+
+
 @app.get("/api/v1/diagnostics")
 async def diagnostics() -> dict:
     """Diagnostics endpoint for CUA-NSIS smoke testing."""
@@ -478,6 +602,7 @@ async def diagnostics() -> dict:
         {"name": "teleop_livekit_publisher_start"},
         {"name": "teleop_livekit_publisher_stop"},
         {"name": "show_teleop_status_card"},
+        {"name": "teleop_shutdown"},
     ]
     return {
         "status": "ok",
@@ -508,6 +633,7 @@ async def capabilities() -> dict:
         "teleop_livekit_publisher_start",
         "teleop_livekit_publisher_stop",
         "teleop_export_recording",
+        "teleop_shutdown",
     ]
     return {
         "status": "ok",

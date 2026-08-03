@@ -1,0 +1,6 @@
+{
+  "name": "teleoperator-mcp",
+  "version": "0.1.0",
+  "description": "WebXR teleoperation gateway for the MCP fleet",
+  "hooks": "../hooks/hooks.json"
+}

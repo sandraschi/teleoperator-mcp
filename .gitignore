@@ -35,3 +35,6 @@ tmp/
 *.bak
 .mcpb/
 data/teleop_recordings/
+
+# Reports (generated — not source code)
+reports/

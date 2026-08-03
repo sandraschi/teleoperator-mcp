@@ -16,7 +16,7 @@ class VboomyAdapter(RobotAdapter):
 
     def __init__(self, mapper: VboomyMapper | None = None) -> None:
         self._mapper = mapper or VboomyMapper()
-        self._gaze = BumiHeadFollower(self._mapper)  # same deadband pattern, degree output
+        self._gaze = BumiHeadFollower(self._mapper)  # type: ignore[reportArgumentType]
 
     @property
     def capabilities(self) -> RobotCapabilities:

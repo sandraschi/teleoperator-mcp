@@ -5,7 +5,7 @@
   "description": "WebXR teleoperation MCP gateway: VR pose from Pico/Meta Quest to fleet robots, ProducerCommand adapter layer, dual-mode telesupervision target.",
   "type": "mcp_server",
   "status": "alpha",
-  "framework": "FastMCP 3.3+",
+  "framework": "FastMCP 3.4+",
   "version": "0.1.0",
   "icon": "gamepad",
   "homeUrl": "https://github.com/sandraschi/teleoperator-mcp",
@@ -18,13 +18,13 @@
   },
   "runtime": {
     "python": ">=3.12",
-    "fastmcp": "3.3.0",
+    "fastmcp": "3.4.0",
     "web_port": 10900,
     "backend_port": 10901
   },
   "keywords": ["webxr", "teleoperation", "pico", "robotics", "livekit", "boomy", "mcp"],
   "capabilities": {
-    "tools": 11,
+    "tools": 12,
     "prompts": false,
     "resources": false,
     "sampling": false,

@@ -1,4 +1,25 @@
 
+## [Unreleased] — 2026-08-03
+
+### Added
+- `teleop_shutdown` MCP tool + `POST /api/shutdown` REST endpoint for graceful server termination
+- `CLAUDE.md` — agent instructions for Claude Code / opencode
+- `.claude-plugin/plugin.json` + `hooks/hooks.json` — session context injection for Claude Code
+- `run_server.py` — PyInstaller dual-transport entry point (MCP_PORT → HTTP, fallback → stdio)
+
+### Fixed
+- CORS: added `tauri://localhost`, `http://tauri.localhost`, `https://tauri.localhost` origins
+- CORS: added unconditional `allow_origin_regex` for Tailscale `*.ts.net` + LAN IPs
+- `@tauri-apps/api` moved from devDependencies to dependencies (required for Tauri WebView)
+- Tool docstrings: added `## Return Format` and `## Examples` to all 10 tools
+- Tool params: added `Annotated[T, Field(description="...")]` annotations
+- `glama.json`: FastMCP version corrected from 3.3 to 3.4, tool count 11→12
+- `llms.txt`: added link to `llms-full.txt`
+- pyright: 0 errors (fixed 8 pre-existing type errors in vboomy, human_pose, PrefabApp)
+
+### Changed
+- `.gitignore`: added `reports/` directory
+
 ## [Unreleased] — 2026-06-14
 
 ### Added

@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "SessionStart": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "text",
+        "text": "## Session Context (Teleoperator MCP)\n\nYou have access to a WebXR teleoperation gateway for fleet robots.\nPose streams via WebSocket at 30 Hz; MCP tools handle supervision.\n\n**Before starting work:**\n1. Check session: teleop_status()\n2. Check video: teleop_livekit_status()\n3. Verify robot: GET /api/v1/robots\n\n**At end of work:**\n- Verify estop is clear if safe: teleop_estop() (stops ALL actuators)\n- Set mode back to DIRECT if AUTO was in use: teleop_set_mode(group, mode, confirm_bench)"
+      }]
+    }]
+  }
+}

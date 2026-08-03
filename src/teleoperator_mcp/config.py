@@ -62,7 +62,10 @@ class Settings(BaseSettings):
         "http://localhost:10900,"
         "http://127.0.0.1:10900,"
         "https://localhost:10900,"
-        "https://127.0.0.1:10900"
+        "https://127.0.0.1:10900,"
+        "tauri://localhost,"
+        "http://tauri.localhost,"
+        "https://tauri.localhost"
     )
 
 

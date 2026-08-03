@@ -42,9 +42,9 @@ class HumanPoseProducer:
 
         return ProducerCommand(
             producer_id=self.producer_id,
-            base=base,
-            gaze=gaze,
-            manip=manip,
+            base=base,  # type: ignore[reportArgumentType]
+            gaze=gaze,  # type: ignore[reportArgumentType]
+            manip=manip,  # type: ignore[reportArgumentType]
         )
 
     def _base_from_controller(self, right: dict):
