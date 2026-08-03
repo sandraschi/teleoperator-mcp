@@ -106,9 +106,14 @@ async def teleop_status() -> dict:
     """Active WebXR teleop session status (connection, frame count, robot target).
 
     ## Return Format
-    {"success": bool, "message": str, "active": bool, "frames_in": int,
-     "robot": str, "has_webxr": bool, "authority": dict, "webxr_clients": int,
-     "yahboom_api": str, "watchdog_ms": int}
+    {"success": bool, "message": str, "active": bool, "robot": str,
+     "active_robot": str, "robots": dict, "recording": dict, "robot_id": str,
+     "display_name": str, "frames_in": int, "last_frame_at": float|None,
+     "uptime_s": float, "client": str|None, "watchdog_latched": bool,
+     "estop_count": int, "auto_elapsed_s": float|None,
+     "authority": {"base|gaze|manip": {"mode": str, "owner": str}, "estop_latched": bool},
+     "groups_available": {"base": bool, "gaze": bool, "manip": bool},
+     "any_auto": bool, "yahboom_api": str, "watchdog_ms": int}
 
     ## Examples
     teleop_status()
@@ -169,7 +174,7 @@ async def teleop_estop() -> dict:
     """Hard stop: zero drive on all actuator groups. Operator/agent veto.
 
     ## Return Format
-    {"success": bool, "message": str, "estop": bool}
+    {"success": bool, "message": str, "estop_count": int, "estop_latched": bool}
 
     ## Examples
     teleop_estop()
@@ -184,7 +189,9 @@ async def teleop_set_mode(group: str, mode: str, confirm_bench: bool = False) ->
     AUTO on base requires an active WebXR session unless confirm_bench=true (blocks only, timed stop).
 
     ## Return Format
-    {"success": bool, "message": str, "group": str, "mode": str, "previous": str}
+    {"success": bool, "message": str, "confirm_bench": bool,
+     "group": str, "mode": str, "owner": str}
+    On failure: {"success": false, "message": str}
 
     ## Examples
     teleop_set_mode(group="base", mode="AUTO", confirm_bench=True)
@@ -200,7 +207,8 @@ async def teleop_takeover(group: str | None = None) -> dict:
     """Human reclaims authority on one group or all available groups. Clears estop latch.
 
     ## Return Format
-    {"success": bool, "message": str, "group": str | None, "groups_reset": [str]}
+    {"success": bool, "message": str, "takeover": [str], "estop_latched": bool}
+    On failure: {"success": false, "message": str}
 
     ## Examples
     teleop_takeover()                        # reclaim all groups
@@ -242,7 +250,11 @@ async def teleop_livekit_status() -> dict:
     """LiveKit video return status (publisher + room config).
 
     ## Return Format
-    {"success": bool, "message": str, "config": dict, "running": bool, "room": str}
+    {"success": bool, "message": str, "config": dict,
+     "enabled": bool, "running": bool, "connected": bool, "room": str,
+     "identity": str, "frames_published": int, "last_frame_at": float|None,
+     "last_error": str|None, "source": str, "width": int, "height": int,
+     "mjpeg_url": str, "livekit_url": str}
 
     ## Examples
     teleop_livekit_status()
@@ -260,7 +272,9 @@ async def teleop_livekit_publisher_start() -> dict:
     """Start Goliath-side MJPEG to LiveKit publisher for Boomy camera.
 
     ## Return Format
-    {"success": bool, "message": str, "running": bool}
+    {"success": bool, "message": str, "enabled": bool, "running": bool,
+     "connected": bool, "room": str, "frames_published": int, "last_error": str|None,
+     "mjpeg_url": str, "livekit_url": str}
 
     ## Examples
     teleop_livekit_publisher_start()
@@ -274,7 +288,8 @@ async def teleop_livekit_publisher_stop() -> dict:
     """Stop LiveKit camera publisher.
 
     ## Return Format
-    {"success": bool, "message": str, "running": bool}
+    {"success": bool, "message": str, "enabled": bool, "running": bool,
+     "connected": bool, "room": str, "frames_published": int, "last_error": str|None}
 
     ## Examples
     teleop_livekit_publisher_stop()
