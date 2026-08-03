@@ -1,46 +1,18 @@
-import { useEffect, useState } from "react";
-
-interface LlmProbe {
-  name: string;
-  url: string;
-  status: "online" | "offline" | "checking";
-  models?: string[];
-}
+import { useEffect } from "react";
+import { useLlmStore } from "../store/llm";
 
 export function SettingsPage() {
-  const [providers, setProviders] = useState<LlmProbe[]>([
-    { name: "Ollama", url: "http://127.0.0.1:11434/api/tags", status: "checking" },
-    { name: "LM Studio", url: "http://127.0.0.1:1234/v1/models", status: "checking" },
-  ]);
-  const [preferred, setPreferred] = useState(() => localStorage.getItem("teleop-llm-provider") ?? "none");
+  const providers = useLlmStore((s) => s.providers);
+  const selectedProvider = useLlmStore((s) => s.selectedProvider);
+  const selectedModel = useLlmStore((s) => s.selectedModel);
+  const discover = useLlmStore((s) => s.discover);
+  const selectProvider = useLlmStore((s) => s.selectProvider);
+  const selectModel = useLlmStore((s) => s.selectModel);
 
   useEffect(() => {
-    void (async () => {
-      const next = await Promise.all(
-        providers.map(async (p) => {
-          try {
-            const res = await fetch(p.url, { signal: AbortSignal.timeout(2500) });
-            if (!res.ok) return { ...p, status: "offline" as const };
-            const data = await res.json();
-            const models =
-              p.name === "Ollama"
-                ? (data.models as { name: string }[] | undefined)?.map((m) => m.name).slice(0, 5)
-                : (data.data as { id: string }[] | undefined)?.map((m) => m.id).slice(0, 5);
-            return { ...p, status: "online" as const, models };
-          } catch {
-            return { ...p, status: "offline" as const };
-          }
-        }),
-      );
-      setProviders(next);
-    })();
+    void discover();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const savePreferred = (value: string) => {
-    setPreferred(value);
-    localStorage.setItem("teleop-llm-provider", value);
-  };
 
   return (
     <>
@@ -52,7 +24,7 @@ export function SettingsPage() {
         {providers.map((p) => (
           <div key={p.name} className="tool-row">
             <div>
-              <strong>{p.name}</strong>
+              <strong>{p.label}</strong>
               <div style={{ fontSize: "0.78rem", color: "var(--shell-muted)" }}>
                 {p.url} — {p.status}
                 {p.models?.length ? ` · ${p.models.join(", ")}` : ""}
@@ -62,13 +34,40 @@ export function SettingsPage() {
           </div>
         ))}
         <div className="field" style={{ marginTop: "1rem" }}>
-          <label htmlFor="llm-pref">Preferred provider (stored locally)</label>
-          <select id="llm-pref" value={preferred} onChange={(e) => savePreferred(e.target.value)}>
+          <label htmlFor="llm-pref">Provider (stored locally)</label>
+          <select
+            id="llm-pref"
+            data-testid="llm-provider-select"
+            value={selectedProvider}
+            onChange={(e) => selectProvider(e.target.value)}
+          >
             <option value="none">None</option>
-            <option value="ollama">Ollama</option>
-            <option value="lmstudio">LM Studio</option>
+            {providers.map((p) => (
+              <option key={p.name} value={p.name} disabled={p.status !== "online"}>
+                {p.label}
+              </option>
+            ))}
           </select>
         </div>
+        {selectedProvider !== "none" && (
+          <div className="field" style={{ marginTop: "0.75rem" }}>
+            <label htmlFor="llm-model">Model</label>
+            <select
+              id="llm-model"
+              data-testid="llm-model-select"
+              value={selectedModel}
+              onChange={(e) => selectModel(e.target.value)}
+            >
+              {providers
+                .find((p) => p.name === selectedProvider)
+                ?.models.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
       </section>
 
       <section className="page-card">
@@ -78,8 +77,10 @@ export function SettingsPage() {
           <dd>10900 (Vite)</dd>
           <dt>Backend port</dt>
           <dd>10901 (FastAPI + MCP)</dd>
-          <dt>WebSocket</dt>
-          <dd>/ws/teleop?robot=boomy | bumi | vboomy</dd>
+          <dt>Video return</dt>
+          <dd>LiveKit :15580</dd>
+          <dt>Robot adapter</dt>
+          <dd>yahboom-mcp :10892</dd>
         </dl>
       </section>
     </>

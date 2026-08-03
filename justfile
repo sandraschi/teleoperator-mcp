@@ -14,6 +14,7 @@ default:
 bootstrap:
     uv sync --all-extras
     Set-Location webapp; npm install
+    uv run pre-commit install
 
 clean:
     if (Test-Path -Path "__pycache__") { Remove-Item -Recurse -Force "__pycache__" }
@@ -35,6 +36,9 @@ lint:
     uv run ruff check .
     Set-Location webapp; npx tsc --noEmit
 
+fmt:
+    uv run ruff format .
+
 fix:
     uv run ruff check . --fix
     uv run ruff format .
@@ -55,3 +59,5 @@ build-native:
     $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
     npx @tauri-apps/cli build
 
+
+# Bootstrap: install dev deps + pre-commit hook

@@ -59,8 +59,49 @@ logger = logging.getLogger("teleoperator-mcp")
 start_time = time.time()
 mcp = FastMCP("Teleoperator MCP")
 
+_READ_ONLY = {"readonly": True}
+_MUTATING = {}
+_DESTRUCTIVE = {}
 
-@mcp.tool()
+
+@mcp.resource("teleop://status")
+async def teleop_status_resource() -> str:
+    """Live teleop session status as an MCP resource (pollable, no tool call needed)."""
+    stats = session_stats()
+    lines = [
+        f"active={stats.get('active', False)}",
+        f"frames_in={stats.get('frames_in', 0)}",
+        f"robot={stats.get('robot', 'none')}",
+        f"webxr={stats.get('has_webxr', False)}",
+        f"mode={stats.get('authority', {}).get('base', 'IDLE')}",
+        f"yahboom_api={settings.yahboom_api_url}",
+    ]
+    return "\n".join(lines)
+
+
+@mcp.prompt()
+def teleop_help(topic: str = "overview") -> str:
+    """Teleoperation guidance prompt for supervisors and operators."""
+    guides = {
+        "overview": (
+            "You are supervising a teleoperation session. Check teleop_status() for session "
+            "state, teleop_livekit_status() for video return, and GET /api/v1/robots for the "
+            "robot catalog. Use teleop_set_mode() to change authority, teleop_estop() for "
+            "emergency stop, teleop_takeover() for human reclaim."
+        ),
+        "estop": (
+            "Emergency stop procedure: call teleop_estop() immediately. It zeroes drive on all "
+            "actuator groups. After the hazard clears, teleop_takeover() clears the latch."
+        ),
+        "livekit": (
+            "Video return: teleop_livekit_status() shows publisher state. Start with "
+            "teleop_livekit_publisher_start() if the camera feed is needed."
+        ),
+    }
+    return guides.get(topic.lower(), guides["overview"])
+
+
+@mcp.tool(annotations=_READ_ONLY)
 async def teleop_status() -> dict:
     """Active WebXR teleop session status (connection, frame count, robot target).
 
@@ -82,7 +123,7 @@ async def teleop_status() -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_MUTATING)
 async def teleop_configure(
     max_linear: Annotated[float | None, Field(description="Linear speed cap (m/s)")] = None,
     max_angular: Annotated[float | None, Field(description="Angular speed cap (rad/s)")] = None,
@@ -123,7 +164,7 @@ async def teleop_configure(
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_DESTRUCTIVE)
 async def teleop_estop() -> dict:
     """Hard stop: zero drive on all actuator groups. Operator/agent veto.
 
@@ -136,7 +177,7 @@ async def teleop_estop() -> dict:
     return await trigger_estop(reason="mcp")
 
 
-@mcp.tool()
+@mcp.tool(annotations=_MUTATING)
 async def teleop_set_mode(group: str, mode: str, confirm_bench: bool = False) -> dict:
     """Set actuator group authority: DIRECT (human) or AUTO (nav stub). Groups: base, gaze, manip.
 
@@ -154,7 +195,7 @@ async def teleop_set_mode(group: str, mode: str, confirm_bench: bool = False) ->
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=_MUTATING)
 async def teleop_takeover(group: str | None = None) -> dict:
     """Human reclaims authority on one group or all available groups. Clears estop latch.
 
@@ -169,7 +210,7 @@ async def teleop_takeover(group: str | None = None) -> dict:
     return await trigger_takeover(group=g)
 
 
-@mcp.tool()
+@mcp.tool(annotations=_MUTATING)
 async def teleop_set_gaze(pan: float, tilt: float) -> dict:
     """Move Boomy camera to absolute pan/tilt (0-180 deg, center ~90). Bench + head-follow prep.
 
@@ -183,7 +224,7 @@ async def teleop_set_gaze(pan: float, tilt: float) -> dict:
     return await trigger_set_gaze(pan=pan, tilt=tilt)
 
 
-@mcp.tool()
+@mcp.tool(annotations=_MUTATING)
 async def teleop_gaze_center() -> dict:
     """Center camera servos (neutral head-follow reference).
 
@@ -196,7 +237,7 @@ async def teleop_gaze_center() -> dict:
     return await trigger_gaze_center()
 
 
-@mcp.tool()
+@mcp.tool(annotations=_READ_ONLY)
 async def teleop_livekit_status() -> dict:
     """LiveKit video return status (publisher + room config).
 
@@ -214,7 +255,7 @@ async def teleop_livekit_status() -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_MUTATING)
 async def teleop_livekit_publisher_start() -> dict:
     """Start Goliath-side MJPEG to LiveKit publisher for Boomy camera.
 
@@ -228,7 +269,7 @@ async def teleop_livekit_publisher_start() -> dict:
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=_MUTATING)
 async def teleop_livekit_publisher_stop() -> dict:
     """Stop LiveKit camera publisher.
 
@@ -242,7 +283,7 @@ async def teleop_livekit_publisher_stop() -> dict:
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=_READ_ONLY)
 async def show_teleop_status_card() -> dict:
     """Show Teleoperator robot status and connection health as a rich Prefab card.
 
@@ -293,7 +334,7 @@ async def show_teleop_status_card() -> dict:
         }
 
 
-@mcp.tool()
+@mcp.tool(annotations=_DESTRUCTIVE)
 async def teleop_shutdown(
     confirm: Annotated[bool, Field(description="Confirm shutdown — MUST be True")] = False,
 ) -> dict:
