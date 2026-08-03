@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     recording_enabled: bool = True
     recording_dir: str = "data/teleop_recordings"
     recording_fps: int = 30
-    # LiveKit video return (M5) — myconf SFU on Goliath :15580
+    # LiveKit video return (M5) — teleconference-mcp SFU on Goliath :15580
     livekit_enabled: bool = True
     livekit_url: str = "ws://127.0.0.1:15580"
     livekit_public_url: str = ""  # Browser WSS URL; empty → livekit_url

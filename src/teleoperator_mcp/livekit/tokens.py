@@ -1,4 +1,4 @@
-"""LiveKit JWT helpers (myconf-compatible devkey/secret)."""
+"""LiveKit JWT helpers (teleconference-mcp-compatible devkey/secret)."""
 
 from __future__ import annotations
 

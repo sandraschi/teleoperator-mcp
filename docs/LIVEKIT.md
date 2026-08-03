@@ -2,7 +2,7 @@
 
 **Audience:** you on Goliath bringing up teleop, or future-you debugging “why is the headset black?”
 
-**Related:** [BRINGUP.md](BRINGUP.md) (full lab checklist), [HTTPS.md](HTTPS.md) (headset URL), [GLOSSARY.md](GLOSSARY.md) (SFU, WebRTC), fleet [LiveKit integration guide](https://github.com/sandraschi/mcp-central-docs/blob/main/integrations/livekit/LIVEKIT_INTEGRATION_GUIDE.md), myconf `livekit.yaml`.
+**Related:** [BRINGUP.md](BRINGUP.md) (full lab checklist), [HTTPS.md](HTTPS.md) (headset URL), [GLOSSARY.md](GLOSSARY.md) (SFU, WebRTC), fleet [LiveKit integration guide](https://github.com/sandraschi/mcp-central-docs/blob/main/integrations/livekit/LIVEKIT_INTEGRATION_GUIDE.md), teleconference-mcp `livekit.yaml`.
 
 ---
 
@@ -13,13 +13,13 @@ Teleop uses **two separate network pipes**:
 | Pipe | What moves | Protocol | Port |
 |------|------------|----------|------|
 | **Control** | Head + controller → drive + PTZ | WebSocket | **10901** (`/ws/teleop`) |
-| **Video** | Boomy camera → your eyes | WebRTC (LiveKit) | **15580** (myconf SFU) |
+| **Video** | Boomy camera → your eyes | WebRTC (LiveKit) | **15580** (teleconference-mcp SFU) |
 
 They are **independent**. You can drive without video (gray plane). You can publish video without an active VR session. If one breaks, check the other first.
 
 **Minimum to see robot video in VR:**
 
-1. myconf LiveKit running on Goliath (`:15580`)
+1. teleconference-mcp LiveKit running on Goliath (`:15580`)
 2. yahboom camera streaming (`http://127.0.0.1:10892/stream` or snapshot)
 3. teleoperator **publisher** started (`scripts/start-livekit-publisher.ps1`)
 4. Headset can reach LiveKit WebSocket (`TELEOP_LIVEKIT_PUBLIC_URL` on Tailscale)
@@ -39,7 +39,7 @@ They are **independent**. You can drive without video (gray plane). You can publ
         |                                   |                                |
         |  WebRTC video (LiveKit)           |  MJPEG pull                    |
         +<===============================>  publisher ----GET /stream------+
-        |         myconf :15580           |                                |
+        |         teleconference-mcp :15580           |                                |
 ```
 
 **Why Goliath sits in the middle for video:** the Pi has no good hardware H.264 encoder. Goliath pulls JPEG frames from yahboom-mcp, converts them, and **publishes** one video track into a LiveKit room. The headset **subscribes** to that track. LiveKit (SFU) handles fan-out and WebRTC negotiation.
@@ -61,7 +61,7 @@ They are **independent**. You can drive without video (gray plane). You can publ
 | yahboom-mcp | Goliath (talks to Pi) | `just serve` in yahboom-mcp |
 | teleoperator backend | Goliath | `scripts/restart-backend.ps1` |
 | teleoperator webapp | Goliath | `just web` or m1-up |
-| **LiveKit SFU** | Goliath (**Windows service** `LiveKitSFU`) | NSSM, auto-start (native `livekit-server` 1.7.0 + `myconf/livekit.yaml`) |
+| **LiveKit SFU** | Goliath (**Windows service** `LiveKitSFU`) | NSSM, auto-start (native `livekit-server` 1.7.0 + `teleconference-mcp/livekit.yaml`) |
 | **LiveKit publisher** | Goliath (inside teleoperator) | `scripts/start-livekit-publisher.ps1` or MCP `teleop_livekit_publisher_start` |
 | WebXR + video client | Pico / Quest browser | User taps **Enter VR** |
 
@@ -81,14 +81,14 @@ Work top to bottom. Stop when a step fails and use [Troubleshooting](#troublesho
 
 The SFU runs as a **Windows service** (`LiveKitSFU`), installed once with NSSM and
 auto-starting with Windows. Binary: `livekit-server` 1.7.0 (native, pinned to match
-myconf's Dockerfile), config from `myconf/livekit.yaml`.
+teleconference-mcp's Dockerfile), config from `teleconference-mcp/livekit.yaml`.
 
 ```powershell
 # Verify service (should be Running, Automatic)
 Get-Service LiveKitSFU
 
 # Logs (rotated by NSSM)
-Get-Content D:\Dev\repos\myconf\logs\livekit.out.log -Tail 50
+Get-Content D:\Dev\repos\teleconference-mcp\logs\livekit.out.log -Tail 50
 
 # Reinstall/repair service (elevated — UAC prompt)
 powershell -ExecutionPolicy Bypass -File D:\Dev\repos\teleoperator-mcp\scripts\install-livekit-service.ps1
@@ -96,7 +96,7 @@ powershell -ExecutionPolicy Bypass -File D:\Dev\repos\teleoperator-mcp\scripts\i
 
 **Expect:** service `Running`; port **15580** listening on Goliath.
 
-**Keys must match:** myconf `livekit.yaml` uses `devkey` / `secret` by default — same as teleoperator `.env`.
+**Keys must match:** teleconference-mcp `livekit.yaml` uses `devkey` / `secret` by default — same as teleoperator `.env`.
 
 ### Step 2 — Camera on Boomy
 
@@ -167,7 +167,7 @@ Invoke-RestMethod http://127.0.0.1:10901/api/v1/livekit/status
 | `TELEOP_LIVEKIT_ENABLED` | `1` | Off = no token API, webapp skips LiveKit |
 | `TELEOP_LIVEKIT_URL` | `ws://127.0.0.1:15580` | Where **publisher** connects (always Goliath-local) |
 | `TELEOP_LIVEKIT_PUBLIC_URL` | *(empty)* | Where **headset browser** connects; set for Tailscale |
-| `TELEOP_LIVEKIT_API_KEY` / `SECRET` | `devkey` / `secret` | Must match myconf LiveKit |
+| `TELEOP_LIVEKIT_API_KEY` / `SECRET` | `devkey` / `secret` | Must match teleconference-mcp LiveKit |
 | `TELEOP_LIVEKIT_ROOM` | `teleop-boomy` | Room name; publisher + viewers must agree |
 | `TELEOP_LIVEKIT_PUBLISHER_FPS` | `15` | Target frames/sec (lower = less CPU/bandwidth) |
 | `TELEOP_LIVEKIT_FRAME_WIDTH` / `HEIGHT` | `640` / `480` | Resize before publish |
@@ -205,7 +205,7 @@ Read the symptom, not the stack trace first.
 
 1. Is LiveKit up? `Get-Service LiveKitSFU` (service must be Running). If stopped: `sc.exe start LiveKitSFU` (elevated) — NSSM auto-restarts on crash.
 2. Do keys match `.env` vs `livekit.yaml`?
-3. **STUN format (2026-06-04):** `livekit.yaml` must use `stun.l.google.com:19302` — **not** `stun:stun.l.google.com:19302` (causes HTTP 500 on `/rtc`). Edit `myconf/livekit.yaml`, then restart the service: `Restart-Service LiveKitSFU` (elevated).
+3. **STUN format (2026-06-04):** `livekit.yaml` must use `stun.l.google.com:19302` — **not** `stun:stun.l.google.com:19302` (causes HTTP 500 on `/rtc`). Edit `teleconference-mcp/livekit.yaml`, then restart the service: `Restart-Service LiveKitSFU` (elevated).
 4. Run `uv sync` in teleoperator-mcp (needs `livekit` Python packages)
 5. Read `last_error` in `/api/v1/livekit/status`
 
@@ -222,7 +222,7 @@ Control pipe is fine; video pipe is broken.
 
 1. Confirm publisher running and `frames_published` > 0
 2. **`TELEOP_LIVEKIT_PUBLIC_URL`** set for headset? Browser devtools not available on Pico — test token URL from desktop first
-3. WebRTC UDP **50000–60000** open Goliath ↔ headset; enable TURN in myconf `livekit.yaml` if needed
+3. WebRTC UDP **50000–60000** open Goliath ↔ headset; enable TURN in teleconference-mcp `livekit.yaml` if needed
 4. Same room name everywhere (`teleop-boomy`)
 
 ### “Video works on desktop, not on Pico”
@@ -284,6 +284,7 @@ Session JSONL ([LEROBOT.md](LEROBOT.md)) logs pose and commands today, **not** v
 
 ## Further reading
 
-- myconf: `docs/LIVEKIT.md`, port **15580**
+- teleconference-mcp: `docs/LIVEKIT.md`, port **15580**
 - Fleet: `mcp-central-docs/integrations/livekit/`
 - Architecture context: [PRD.md §6](PRD.md), [STACK.md §3](STACK.md)
+

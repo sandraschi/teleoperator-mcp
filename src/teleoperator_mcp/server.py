@@ -533,7 +533,7 @@ async def api_livekit_config(robot: str | None = Query(default=None)) -> dict:
 
 @app.post("/api/v1/livekit/token")
 async def api_livekit_token(body: LiveKitTokenBody) -> dict:
-    """Subscribe-only JWT for headset browser (myconf-compatible keys)."""
+    """Subscribe-only JWT for headset browser (teleconference-mcp-compatible keys)."""
     if not settings.livekit_enabled:
         return {"success": False, "message": "LiveKit disabled"}
     room = (body.room or settings.livekit_room).strip()

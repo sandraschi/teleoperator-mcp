@@ -41,7 +41,7 @@ Plain-language definitions for terms used across teleoperator-mcp docs. Not a tu
 | **MCP (Model Context Protocol)** | Standard way Cursor/agents call tools on fleet servers. Our supervisor interface. |
 | **FastMCP** | Python MCP framework (v3.2+) used for `teleop_status`, `teleop_configure`, `teleop_estop`. |
 | **yahboom-mcp** | Separate repo: ROS 2 bridge, REST API, camera, MCP tools for Boomy hardware. |
-| **LiveKit / myconf** | Self-hosted **WebRTC video server** (SFU) from the myconf repo. Port **15580** on Goliath. Headset subscribes; teleoperator **publisher** sends Boomy camera frames. See [LIVEKIT.md](LIVEKIT.md). |
+| **LiveKit / teleconference-mcp** | Self-hosted **WebRTC video server** (SFU) from the teleconference-mcp repo. Port **15580** on Goliath. Headset subscribes; teleoperator **publisher** sends Boomy camera frames. See [LIVEKIT.md](LIVEKIT.md). |
 | **Publisher (video)** | Python task on Goliath: reads yahboom MJPEG, publishes track `boomy-camera` into room `teleop-boomy`. |
 | **Subscriber (video)** | WebXR browser joins same room with a subscribe-only JWT and displays the remote video track. |
 
@@ -93,3 +93,4 @@ Plain-language definitions for terms used across teleoperator-mcp docs. Not a tu
 | VLA | Vision-language-action model |
 | DOF | Degrees of freedom (joint axes) |
 | E-stop | Emergency stop (zero velocity / halt) |
+

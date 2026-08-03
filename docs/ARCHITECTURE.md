@@ -15,7 +15,7 @@ Teleop is **not** one protocol. Treat control and video as separate systems that
   Headset           WebSocket JSON pose                WebRTC via LiveKit
        |            /ws/teleop?robot=boomy                   |
        v            port 10901                               v
-  Goliath           teleoperator-mcp                         myconf SFU
+  Goliath           teleoperator-mcp                         teleconference-mcp SFU
        |            arbiter + adapter                         port 15580
        |            |                                         ^
        v            v                                         |
@@ -38,7 +38,7 @@ Teleop is **not** one protocol. Treat control and video as separate systems that
 | 10900 | Vite webapp | WebXR UI, proxies `/api` and `/ws` to 10901 |
 | 10901 | teleoperator-mcp | WS teleop, MCP, REST, LiveKit token + publisher control |
 | 10892 | yahboom-mcp | Robot driver (from Goliath, targets Boomy Pi) |
-| 15580 | myconf LiveKit | Video SFU (Docker) |
+| 15580 | teleconference-mcp LiveKit | Video SFU (Docker) |
 | 10909 | speech-mcp | Spoken AUTO/watchdog warnings (optional) |
 
 Headset URL: Tailscale Serve → **10900** only. LiveKit is a **second** connection to **15580** (see LIVEKIT.md).
@@ -78,3 +78,4 @@ Each VR session can write JSONL under `data/teleop_recordings/`. See [LEROBOT.md
 | HTTPS on Goliath | [HTTPS.md](HTTPS.md) |
 | Terms (VLA, arbiter, LeRobot) | [GLOSSARY.md](GLOSSARY.md) |
 | Full stack table | [STACK.md](STACK.md) |
+

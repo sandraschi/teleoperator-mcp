@@ -2,7 +2,7 @@
 ## [Unreleased] — 2026-08-03 (session 2)
 
 ### Added
-- LiveKit SFU is now a **Windows service** (`LiveKitSFU`, NSSM, native livekit-server 1.7.0 + myconf/livekit.yaml, auto-start, crash-restart). Docker no longer required for video return
+- LiveKit SFU is now a **Windows service** (`LiveKitSFU`, NSSM, native livekit-server 1.7.0 + teleconference-mcp/livekit.yaml, auto-start, crash-restart). Docker no longer required for video return
 - `scripts/ws-integration-harness.py` + `just integration-test` — headless WS harness proving the pose pipeline against the live stack (12 checks: handshake, acks, estop, authority, recording on disk, watchdog)
 - `scripts/start-stack-detached.ps1`, `scripts/launch-*.cmd` — detached stack launchers
 - `scripts/install-livekit-service.ps1` / `scripts/start-livekit-service.ps1` — NSSM service install/start (elevated)
@@ -96,4 +96,5 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.1.0] - 2026-06-02
 
 - Initial alpha: WebXR pose gateway, Boomy adapter, arbiter/M3, LeRobot JSONL, LiveKit publisher (M5).
+
 

@@ -143,8 +143,8 @@ From Cursor while backend is up and Goliath is on the Raspbot AP:
 Full guide: **[LIVEKIT.md](LIVEKIT.md)**. Short path:
 
 ```powershell
-# myconf LiveKit (once)
-Set-Location D:\Dev\repos\myconf
+# teleconference-mcp LiveKit (once)
+Set-Location D:\Dev\repos\teleconference-mcp
 docker compose up -d livekit
 
 # teleoperator .env — set TELEOP_LIVEKIT_PUBLIC_URL for Pico Tailscale
@@ -189,3 +189,4 @@ Milestone 1 complete when:
 - [ ] HTTPS path documented with your actual Tailscale hostname
 
 Then proceed to Milestone 5 acceptance (latency notes) or fleet backlog in [TODO.md](TODO.md). Milestone 3 (arbiter) is software-complete; squeeze takeover sign-off is part of section 5 above.
+

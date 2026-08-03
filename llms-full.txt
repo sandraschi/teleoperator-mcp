@@ -204,7 +204,7 @@ cd webapp && npm run dev
 
 1. **WebXR not available** - Browser does not support immersive-vr. Use Pico 4 / Quest with HTTPS via Tailscale Serve.
 2. **Robot not moving** - Check yahboom-mcp (port 10892) is running. Verify robot power.
-3. **LiveKit no video** - Verify LiveKit SFU service (`Get-Service LiveKitSFU`, port 15580) is running. Check publisher logs at `myconf/logs/livekit.out.log`.
+3. **LiveKit no video** - Verify LiveKit SFU service (`Get-Service LiveKitSFU`, port 15580) is running. Check publisher logs at `teleconference-mcp/logs/livekit.out.log`.
 4. **WebSocket disconnects** - Check watchdog interval. Network latency may exceed watchdog.
 5. **AUTO mode fails** - WebXR session required unless confirm_bench=true. Max 10s duration.
 
@@ -219,5 +219,6 @@ cd webapp && npm run dev
 - **yahboom-mcp**: Robot hardware bridge (port 10892)
 - **bumi-mcp**: Biped robot bridge (port 10774)
 - **resonite-mcp**: Virtual twin via OSC (port 10979)
-- **LiveKit SFU**: Windows service `LiveKitSFU` (native livekit-server 1.7.0, myconf/livekit.yaml, port 15580)
+- **LiveKit SFU**: Windows service `LiveKitSFU` (native livekit-server 1.7.0, teleconference-mcp/livekit.yaml, port 15580)
 - **Integration test**: `just integration-test` — headless WS harness proving the pose pipeline against the live stack
+

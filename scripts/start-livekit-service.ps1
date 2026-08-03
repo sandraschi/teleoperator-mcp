@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-$log = "D:\Dev\repos\myconf\livekit-service-setup.log"
+$log = "D:\Dev\repos\teleconference-mcp\livekit-service-setup.log"
 
 try {
     sc.exe start LiveKitSFU | Out-Null
@@ -12,3 +12,4 @@ try {
 } catch {
     "ERROR: $($_.Exception.Message)" | Out-File $log -Append
 }
+

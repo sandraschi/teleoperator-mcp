@@ -6,7 +6,7 @@
 
 ## 1. Problem
 
-Operators need to drive fleet robots from a VR headset with low enough latency for slow telepresence, without rebuilding control plumbing per robot. The fleet already has robot drivers (`yahboom-mcp`), video paths (`VideoBridge`, LiveKit/myconf), and MCP standards — but no VR pose ingress layer.
+Operators need to drive fleet robots from a VR headset with low enough latency for slow telepresence, without rebuilding control plumbing per robot. The fleet already has robot drivers (`yahboom-mcp`), video paths (`VideoBridge`, LiveKit/teleconference-mcp), and MCP standards — but no VR pose ingress layer.
 
 ## 2. Solution summary
 
@@ -79,9 +79,9 @@ The HUD lives **inside WebXR**, not as a desktop overlay blocking the robot view
 
 ## 6. v1.5 — video return
 
-- Goliath publishes Boomy `VideoBridge` frames to **myconf LiveKit** room `teleop-boomy`
+- Goliath publishes Boomy `VideoBridge` frames to **teleconference-mcp LiveKit** room `teleop-boomy`
 - WebXR client subscribes, maps track to a large plane in front of user (flat mono, not stereo)
-- Reuse myconf token endpoint pattern; document in `docs/LIVEKIT.md`
+- Reuse teleconference-mcp token endpoint pattern; document in `docs/LIVEKIT.md`
 
 ## 7. v2 — immersion
 
@@ -182,3 +182,4 @@ Register in `mcp-central-docs/operations/WEBAPP_PORTS.md` (done: 10900/10901).
 - [ ] Confirm yahboom `camera_set_pos` REST path matches deployed API
 - [ ] LiveKit publisher sidecar (v1.5)
 - [ ] Pico Browser WebXR feature matrix test on hardware
+

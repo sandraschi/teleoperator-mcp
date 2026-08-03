@@ -107,7 +107,7 @@ SKU traps (do not misbuy): R1 Air ($4,900) / R1 standard ($5,900) are **closed**
 | Install | Naked-PC standard (`Require-Command` in `start.ps1`, `INSTALL.md`) | TODO (start.ps1 minimal launcher only) |
 | Data logging | LeRobot JSONL episodes (`data/teleop_recordings/`) | now (M4); parquet + video sync later |
 | Downstream robot | yahboom-mcp (10892) | now |
-| Video | myconf LiveKit (15580) + teleoperator publisher | now (M5); headset sign-off pending |
+| Video | teleconference-mcp LiveKit (15580) + teleoperator publisher | now (M5); headset sign-off pending |
 
 ---
 
@@ -117,3 +117,4 @@ SKU traps (do not misbuy): R1 Air ($4,900) / R1 standard ($5,900) are **closed**
 - pytest + pytest-asyncio (`asyncio_mode = auto`); current tests cover the mapper only, WS/watchdog untested
 - TypeScript `tsc --noEmit` for the webapp
 - Playwright (headless) for webapp e2e - per fleet standard, not yet present
+

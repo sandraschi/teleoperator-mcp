@@ -1,13 +1,13 @@
 $ErrorActionPreference = "Stop"
-$log = "D:\Dev\repos\myconf\livekit-service-setup.log"
+$log = "D:\Dev\repos\teleconference-mcp\livekit-service-setup.log"
 $nssm = "C:\Users\sandr\AppData\Local\Microsoft\WinGet\Links\nssm.exe"
 $exe = "C:\Users\sandr\AppData\Local\Programs\LiveKit\livekit-server.exe"
-$cfg = "D:\Dev\repos\myconf\livekit.yaml"
-$stdout = "D:\Dev\repos\myconf\logs\livekit.out.log"
-$stderr = "D:\Dev\repos\myconf\logs\livekit.err.log"
+$cfg = "D:\Dev\repos\teleconference-mcp\livekit.yaml"
+$stdout = "D:\Dev\repos\teleconference-mcp\logs\livekit.out.log"
+$stderr = "D:\Dev\repos\teleconference-mcp\logs\livekit.err.log"
 
 try {
-    New-Item -ItemType Directory -Force -Path "D:\Dev\repos\myconf\logs" | Out-Null
+    New-Item -ItemType Directory -Force -Path "D:\Dev\repos\teleconference-mcp\logs" | Out-Null
 
     $old = Get-Service LiveKitSFU -ErrorAction SilentlyContinue
     if ($old) {
@@ -19,8 +19,8 @@ try {
 
     & $nssm install LiveKitSFU $exe "--config" $cfg | Out-File $log
     & $nssm set LiveKitSFU AppDirectory "C:\Users\sandr\AppData\Local\Programs\LiveKit" | Out-Null
-    & $nssm set LiveKitSFU DisplayName "LiveKit SFU (myconf teleop video)" | Out-Null
-    & $nssm set LiveKitSFU Description "LiveKit WebRTC SFU for teleoperator-mcp video return (myconf livekit.yaml)" | Out-Null
+    & $nssm set LiveKitSFU DisplayName "LiveKit SFU (teleconference-mcp teleop video)" | Out-Null
+    & $nssm set LiveKitSFU Description "LiveKit WebRTC SFU for teleoperator-mcp video return (teleconference-mcp livekit.yaml)" | Out-Null
     & $nssm set LiveKitSFU Start SERVICE_AUTO_START | Out-Null
     & $nssm set LiveKitSFU AppStdout $stdout | Out-Null
     & $nssm set LiveKitSFU AppStderr $stderr | Out-Null
@@ -40,3 +40,4 @@ try {
 } catch {
     "ERROR: $($_.Exception.Message)" | Out-File $log -Append
 }
+

@@ -69,7 +69,7 @@ The abstraction that makes the hardware ladder a driver swap.
 
 ---
 
-## Milestone 5 - Video return v1.5 (~1-2 days, needs myconf)
+## Milestone 5 - Video return v1.5 (~1-2 days, needs teleconference-mcp)
 
 - [x] Goliath-side publisher: yahboom MJPEG/snapshot → LiveKit track (`src/teleoperator_mcp/livekit/`).
 - [x] Token + config REST; MCP `teleop_livekit_*` tools; webapp `livekit-client` subscribe → center plane.
@@ -123,3 +123,4 @@ The manipulation handoff. No date until the platform is on the bench.
 ## Sequencing note
 
 Milestones 0 -> 5 are mostly hardware-light and can run now in order; 2 and 3 are the real architectural work and should not start until Milestone 1 proves the data plane on Boomy. Milestone 6 waits on hardware. Rough cumulative for 0-4 (the software spine, no waiting on parts): ~5-7 working days.
+

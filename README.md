@@ -76,7 +76,7 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 | Webapp | Vite 6 + React (Iron Shell) + Three.js WebXR | 10900 |
 | Backend | FastAPI + FastMCP + WebSocket | 10901 |
 | Adapter | `BoomyAdapter` → [yahboom-mcp](https://github.com/sandraschi/yahboom-mcp) | 10892 |
-| Video | [myconf](https://github.com/sandraschi/myconf) LiveKit + Goliath publisher | 15580 |
+| Video | [teleconference-mcp](https://github.com/sandraschi/teleconference-mcp) LiveKit + Goliath publisher | 15580 |
 
 ```
   Pico / Meta Quest (Tailscale + Browser)
@@ -147,3 +147,4 @@ just integration-test   # headless WS harness vs live stack (needs backend up)
 ## License
 
 MIT
+
