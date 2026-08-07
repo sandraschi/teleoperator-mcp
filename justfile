@@ -46,7 +46,7 @@ fix:
 test:
     uv run pytest tests/ -v
 
-# Headless WS integration harness — proves pose pipeline against live stack
+# --- Headless WS integration harness  proves pose pipeline against live stack ---
 integration-test:
     uv run python scripts/ws-integration-harness.py --frames 60 --look
 
@@ -55,7 +55,7 @@ ci:
     uv run pytest tests/ -q
     Set-Location webapp; npm ci; npm run check
 
-# ── Tauri Native ───────────────────────────────────────────────────────────────
+# --- Tauri Native ---
 
 # Build Tauri native desktop app (full pipeline: frontend + backend)
 build-native:

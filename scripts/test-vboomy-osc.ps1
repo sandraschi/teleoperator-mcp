@@ -27,7 +27,7 @@ try {
     Write-Host "Sent via resonite-mcp /api/resonite/vbot/test"
     exit 0
 } catch {
-    Write-Host "resonite-mcp not reachable ($ResoniteApi) — sending OSC steps manually..."
+    Write-Host "resonite-mcp not reachable ($ResoniteApi) - sending OSC steps manually..."
 }
 
 $scale = if ($RobotType -eq "mechazilla") { 2.5 } else { 1.0 }
@@ -40,4 +40,4 @@ Start-Sleep -Milliseconds 500
 Send-OscViaResoniteMcp "/robot/$RobotId/head" @(10.0, -5.0)
 Start-Sleep -Milliseconds 500
 Send-OscViaResoniteMcp "/robot/$RobotId/stop" @(1.0)
-Write-Host "Done — check Resonite vBotRoot motion."
+Write-Host "Done - check Resonite vBotRoot motion."
