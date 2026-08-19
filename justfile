@@ -13,7 +13,7 @@ default:
 
 bootstrap:
     uv sync --all-extras
-    Set-Location webapp; npm install
+    Set-Location webapp; bun install
     uv run pre-commit install
 
 clean:
@@ -27,15 +27,15 @@ stdio:
     uv run python -m teleoperator_mcp.server --mode stdio
 
 web:
-    Set-Location webapp; npm run dev
+    Set-Location webapp; bun run dev
 
 dev:
     uv run uvicorn teleoperator_mcp.server:app --reload --port {{PORT}} --host {{HOST}}
 
 lint:
     uv run ruff check .
-    Set-Location webapp; npx tsc --noEmit
-    Set-Location webapp; npx biome check src/
+    Set-Location webapp; bunx tsc --noEmit
+    Set-Location webapp; bunx biome check src/
 
 types:
     uv run pyright src/
@@ -59,8 +59,8 @@ integration-test:
 ci:
     uv sync --all-extras
     uv run pytest tests/ -q
-    Set-Location webapp; npm ci; npm run check
-    Set-Location webapp; npm run biome:ci
+    Set-Location webapp; bun install --frozen-lockfile; bun run check
+    Set-Location webapp; bun run biome:ci
 
 # --- Tauri Native ---
 

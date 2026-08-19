@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE } from "../lib/api";
+import { useLlmStore } from "../store/llm";
 
 interface Message {
   role: "user" | "assistant";
@@ -45,14 +46,23 @@ export default function FloatingChat() {
   const [chat, setChat] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [provider, setProvider] = useState(() => localStorage.getItem("llm_provider") || "ollama");
-  const [model, setModel] = useState(() => localStorage.getItem("llm_model") || "");
-  const [modelList, setModelList] = useState<string[]>([]);
+  const selectedProvider = useLlmStore((s) => s.selectedProvider);
+  const selectedModel = useLlmStore((s) => s.selectedModel);
+  const providers = useLlmStore((s) => s.providers);
+  const discover = useLlmStore((s) => s.discover);
+  const selectModel = useLlmStore((s) => s.selectModel);
   const [skillName, setSkillName] = useState("");
   const [personality, setPersonality] = useState(
     () => localStorage.getItem("fc_personality") || "helpful",
   );
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const modelList = useMemo(() => providers.flatMap((p) => p.models), [providers]);
+
+  useEffect(() => {
+    void discover();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     try {
@@ -69,26 +79,6 @@ export default function FloatingChat() {
       localStorage.removeItem("fc_chat");
     }
   }, [chat]);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/llm/providers`)
-      .then((r) => r.json())
-      .then((d) => {
-        const providers = d.providers || d;
-        const list: string[] = [];
-        if (Array.isArray(providers)) {
-          for (const p of providers) {
-            if (p.models) list.push(...p.models);
-          }
-        }
-        setModelList(list);
-        if (!model && list.length > 0) {
-          setModel(list[0]);
-          localStorage.setItem("llm_model", list[0]);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -111,7 +101,12 @@ export default function FloatingChat() {
       const r = await fetch(`${API_BASE}/api/llm/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, model, prompt: text, system: sp?.prompt }),
+        body: JSON.stringify({
+          provider: selectedProvider,
+          model: selectedModel,
+          prompt: text,
+          system: sp?.prompt,
+        }),
       });
       const data = await r.json();
       setChat((prev) => [
@@ -182,10 +177,9 @@ export default function FloatingChat() {
               {modelList.length > 0 && (
                 <select
                   className="bg-slate-800 border border-slate-600 rounded text-sm px-2 py-1 text-slate-300 max-w-[140px]"
-                  value={model}
+                  value={selectedModel}
                   onChange={(e) => {
-                    setModel(e.target.value);
-                    localStorage.setItem("llm_model", e.target.value);
+                    selectModel(e.target.value);
                   }}
                 >
                   {modelList.map((m) => (

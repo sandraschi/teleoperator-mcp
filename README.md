@@ -54,6 +54,8 @@ Target architecture (arbiter, per-group authority, LeRobot logging, VLA producer
 | [docs/BRINGUP.md](docs/BRINGUP.md) | Milestone 1 hardware checklist |
 | [docs/STACK.md](docs/STACK.md) | Full technology stack |
 | [docs/TODO.md](docs/TODO.md) | Milestone plan |
+| [docs/ONBOARDING.md](docs/ONBOARDING.md) | First-timer setup, pitfalls, sanity check |
+| [INSTALL.md](INSTALL.md) | Install and run the stack |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes |
 
 ---
@@ -109,6 +111,7 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 | `teleop_livekit_status` | shipped (M5) |
 | `teleop_livekit_publisher_start` / `_stop` | shipped (M5) |
 | `show_teleop_status_card` | shipped (Prefab) |
+| `teleop_voice_command` | shipped (speech-mcp STT control) |
 | `teleop_shutdown` | shipped |
 
 ---

@@ -30,6 +30,7 @@ webapp/node_modules/
 webapp/dist/
 webapp/playwright-report/
 webapp/test-results/
+webapp/package-lock.json
 
 # Logs / scratch
 *.log

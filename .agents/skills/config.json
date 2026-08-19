@@ -1,0 +1,8 @@
+{
+  "auto_load": ["session-start"],
+  "skills": {
+    "session-start": {
+      "description": "Teleoperator MCP tool-awareness prompt for Antigravity sessions"
+    }
+  }
+}

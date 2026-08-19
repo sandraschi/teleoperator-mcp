@@ -21,6 +21,7 @@ All tools return `{success, message, ...}`. Annotations: `[RO]` read-only, `[M]`
 | teleop_livekit_publisher_start | M | Start MJPEG->LiveKit publisher | — |
 | teleop_livekit_publisher_stop | M | Stop publisher | — |
 | show_teleop_status_card | RO | Prefab App status card | — |
+| teleop_voice_command | M | Execute speech-mcp STT command (estop/takeover/mode/gaze/video) | transcript |
 | teleop_shutdown | D | Graceful shutdown | confirm (must be true) |
 
 ### teleop_status
@@ -64,6 +65,12 @@ Returns `config` plus publisher status: `enabled`, `running`, `connected`, `room
 
 Renders a PrefabApp card (fallback dict if prefab_ui unavailable).
 
+### teleop_voice_command
+
+Executes a voice command from speech-mcp STT. Keyword-rule dispatch (no LLM): emergency
+stop, take over, center camera, look left/right/up/down, start/stop video, set base/gaze to
+AUTO/DIRECT, status. Returns `action` and the underlying tool `result`.
+
 ### teleop_shutdown
 
 Requires `confirm=true`. Stops publisher, disconnects clients, exits.
@@ -101,6 +108,7 @@ Requires `confirm=true`. Stops publisher, disconnects clients, exits.
 | POST | /api/v1/teleop/takeover | REST mirror of teleop_takeover |
 | POST | /api/v1/teleop/gaze | REST mirror of teleop_set_gaze (pan, tilt) |
 | POST | /api/v1/teleop/gaze/center | REST mirror of teleop_gaze_center |
+| POST | /api/v1/teleop/voice | REST mirror of teleop_voice_command (STT transcript body) |
 | POST | /api/v1/teleop/set_mode | REST mirror of teleop_set_mode (group, mode, confirm_bench) |
 | POST | /api/v1/recording/export | Export JSONL to LeRobot parquet |
 | POST | /api/shutdown | Graceful shutdown (confirm=true) |

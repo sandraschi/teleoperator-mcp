@@ -15,8 +15,8 @@ export function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const ollamaUp = providers.find((p) => p.name === "ollama")?.status === "online";
   const anyUp = providers.some((p) => p.status === "online");
+  const probing = providers.some((p) => p.status === "checking");
 
   return (
     <>
@@ -26,6 +26,14 @@ export function SettingsPage() {
           Auto-discovery of local inference engines. Teleop does not require LLM; reserved for
           future agent assist.
         </p>
+        {probing && (
+          <div className="skeleton" data-testid="llm-probing" style={{ height: "3rem" }} />
+        )}
+        {!probing && !anyUp && !gpu && (
+          <p data-testid="llm-empty" style={{ color: "var(--shell-muted)" }}>
+            No local LLM detected. Start <code>ollama serve</code> or LM Studio, then retry.
+          </p>
+        )}
         {gpu && (
           <div className="tool-row" data-testid="gpu-status">
             <div>
@@ -92,6 +100,11 @@ export function SettingsPage() {
             </select>
           </div>
         )}
+        <div style={{ marginTop: "1rem" }}>
+          <button type="button" className="btn secondary" onClick={() => void discover()}>
+            Re-scan local LLM
+          </button>
+        </div>
       </section>
 
       <section className="page-card">

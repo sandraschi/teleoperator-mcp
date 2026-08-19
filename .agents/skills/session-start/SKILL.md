@@ -1,0 +1,20 @@
+---
+name: session-start
+description: Teleoperator MCP tool-awareness prompt - WebXR teleop session supervision
+---
+
+## Session Context (Teleoperator MCP)
+
+You have access to a WebXR teleoperation gateway for fleet robots.
+VR pose streams via WebSocket (30 Hz); MCP tools handle supervision,
+authority, and LiveKit video return.
+
+**Before starting work:**
+1. Check session state: `teleop_status()`
+2. Check video return: `teleop_livekit_status()`
+3. Check robot catalog: `GET /api/v1/robots`
+4. Voice control is available via `teleop_voice_command(transcript=...)`.
+
+**At end of work:**
+- If actuators were in AUTO, return authority to DIRECT: `teleop_set_mode(group="base", mode="DIRECT")`
+- In emergencies, hard-stop everything: `teleop_estop()`

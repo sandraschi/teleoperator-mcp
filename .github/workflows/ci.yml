@@ -43,24 +43,21 @@ jobs:
       - name: Pytest
         run: uv run pytest tests/ -q
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: webapp/package-lock.json
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Frontend install
         working-directory: webapp
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Frontend typecheck (tsc)
         working-directory: webapp
-        run: npm run check
+        run: bun run check
 
       - name: Frontend lint (biome)
         working-directory: webapp
-        run: npm run biome:ci
+        run: bun run biome:ci
 
       - name: Frontend build
         working-directory: webapp
-        run: npm run build
+        run: bun run build

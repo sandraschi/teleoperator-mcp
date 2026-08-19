@@ -61,7 +61,7 @@ if (-not $ready) {
 }
 
 try {
-    & npm run dev -- --host 127.0.0.1 --port 10900 --strictPort
+    & "C:\Users\sandr\.bun\bin\bun.exe" run dev -- --host 127.0.0.1 --port 10900 --strictPort
 } finally {
     Stop-Process -Id $backend.Id -Force -ErrorAction SilentlyContinue
 }

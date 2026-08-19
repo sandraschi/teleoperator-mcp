@@ -8,6 +8,8 @@ import { LoggerPanel } from "./LoggerPanel";
 const NAV = [
   { to: "/", label: "Home", end: true },
   { to: "/tools", label: "Tools" },
+  { to: "/inbox", label: "Inbox" },
+  { to: "/skills", label: "Skills" },
   { to: "/logs", label: "Logs" },
   { to: "/apps", label: "Apps" },
   { to: "/settings", label: "Settings" },
@@ -17,6 +19,8 @@ const NAV = [
 const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/tools": "MCP Tools",
+  "/inbox": "Activity Inbox",
+  "/skills": "Supervisor Skills",
   "/logs": "Event Logs",
   "/apps": "Fleet Apps",
   "/settings": "Settings",
@@ -48,6 +52,14 @@ export function Shell() {
       } else if (e.key.toLowerCase() === "h") {
         e.preventDefault();
         navigate("/help");
+      } else if (e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        navigate("/logs");
+        // Focus the logs search after navigation.
+        window.setTimeout(() => {
+          const el = document.getElementById("log-search");
+          if (el) el.focus();
+        }, 50);
       }
     };
     window.addEventListener("keydown", handler);

@@ -58,4 +58,9 @@ export interface HealthResponse {
     robots?: Record<string, RobotCatalogEntry>;
   };
   livekit?: { running?: boolean };
+  onboarding?: {
+    configured: boolean;
+    service: string;
+    url: string;
+  };
 }

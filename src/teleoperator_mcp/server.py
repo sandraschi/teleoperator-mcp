@@ -40,6 +40,7 @@ from .livekit import (
     stop_publisher,
 )
 from .runtime import robots_catalog
+from .voice_commands import parse_voice_command
 from .ws.handler import (
     disconnect_all,
     session_stats,
@@ -425,6 +426,75 @@ async def teleop_shutdown(
     os._exit(0)
 
 
+@mcp.tool(annotations=_MUTATING)
+async def teleop_voice_command(
+    transcript: Annotated[
+        str, Field(description="Spoken transcript from speech-mcp STT (e.g. 'emergency stop')")
+    ],
+) -> dict:
+    """Execute a voice command from speech-mcp STT (estop, takeover, mode, gaze, LiveKit).
+
+    Maps the spoken transcript to a deterministic teleop action: emergency stop,
+    take over, center or pan the camera, start/stop LiveKit video, switch base/gaze
+    between DIRECT and AUTO, or report status. No LLM on the hot path — keyword rules.
+
+    ## Return Format
+    {"success": bool, "message": str, "action": str, "result": dict}
+
+    ## Examples
+    teleop_voice_command(transcript="emergency stop")
+    teleop_voice_command(transcript="take over")
+    teleop_voice_command(transcript="set base to auto")
+    teleop_voice_command(transcript="look left")
+    teleop_voice_command(transcript="start video")
+    """
+    return await _execute_voice_command(transcript)
+
+
+async def _execute_voice_command(transcript: str) -> dict:
+    """Shared voice-command dispatch for the MCP tool and REST mirror."""
+    parsed = parse_voice_command(transcript)
+    action = parsed.action
+
+    if action == "unknown":
+        return {
+            "success": False,
+            "message": (
+                f"Unrecognized voice command: '{transcript}'. Try: emergency stop, "
+                "take over, center camera, look left/right/up/down, start/stop video, "
+                "set base to auto/direct, status."
+            ),
+            "action": "unknown",
+            "result": {},
+        }
+
+    if action == "estop":
+        result = await trigger_estop(reason="voice")
+    elif action == "takeover":
+        result = await trigger_takeover()
+    elif action == "gaze_center":
+        result = await trigger_gaze_center()
+    elif action == "set_gaze":
+        result = await trigger_set_gaze(**parsed.args)
+    elif action == "set_mode":
+        result = await trigger_set_mode(**parsed.args)
+    elif action == "livekit_start":
+        result = await start_publisher()
+    elif action == "livekit_stop":
+        result = await stop_publisher()
+    elif action == "status":
+        result = {"success": True, "message": "Session status", **session_stats()}
+    else:  # pragma: no cover - parse_voice_command is the exhaustive switch
+        return {"success": False, "message": f"Unhandled action '{action}'", "result": {}}
+
+    return {
+        "success": bool(result.get("success", True)),
+        "message": result.get("message", action),
+        "action": action,
+        "result": result,
+    }
+
+
 class LiveKitTokenBody(BaseModel):
     identity: str = Field(min_length=1, max_length=128)
     room: str | None = None
@@ -568,6 +638,16 @@ async def api_teleop_gaze(pan: float, tilt: float) -> dict:
 @app.post("/api/v1/teleop/gaze/center")
 async def api_teleop_gaze_center() -> dict:
     return await trigger_gaze_center()
+
+
+class VoiceCommandBody(BaseModel):
+    transcript: str = Field(min_length=1, max_length=500)
+
+
+@app.post("/api/v1/teleop/voice")
+async def api_teleop_voice(body: VoiceCommandBody) -> dict:
+    """REST mirror of teleop_voice_command — STT transcripts from speech-mcp or the bus."""
+    return await _execute_voice_command(body.transcript)
 
 
 @app.get("/api/v1/robots")
@@ -748,6 +828,28 @@ async def llm_chat(body: dict) -> dict:
         return {"error": str(e)}
 
 
+async def _bridge_configured() -> dict:
+    """Probe whether the primary robot bridge (yahboom-mcp) is reachable.
+
+    Drives the webapp onboarding cue: `configured: true` clears MOCK-until-onboarded
+    sample content. Best-effort with a short timeout; never blocks health for long.
+    """
+    import httpx
+
+    base = settings.yahboom_api_url.rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=2) as client:
+            r = await client.get(f"{base}/api/v1/health")
+            ok = r.status_code < 500
+    except Exception:
+        ok = False
+    return {
+        "configured": ok,
+        "service": "yahboom-mcp",
+        "url": base,
+    }
+
+
 @app.get("/api/v1/health")
 async def health() -> dict:
     return {
@@ -757,6 +859,7 @@ async def health() -> dict:
         "uptime_s": round(time.time() - start_time, 1),
         "teleop": session_stats(),
         "livekit": get_publisher().status(),
+        "onboarding": await _bridge_configured(),
     }
 
 
@@ -789,6 +892,7 @@ async def diagnostics() -> dict:
         {"name": "teleop_livekit_publisher_start"},
         {"name": "teleop_livekit_publisher_stop"},
         {"name": "show_teleop_status_card"},
+        {"name": "teleop_voice_command"},
         {"name": "teleop_shutdown"},
     ]
     return {
@@ -820,6 +924,7 @@ async def capabilities() -> dict:
         "teleop_livekit_publisher_start",
         "teleop_livekit_publisher_stop",
         "show_teleop_status_card",
+        "teleop_voice_command",
         "teleop_shutdown",
     ]
     return {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE } from "../lib/api";
 import { useCapabilities } from "../lib/capabilities";
+import { MOCK_ROBOTS, MOCK_SESSION } from "../lib/mockOnboarding";
 import type { HealthResponse, RobotCatalogEntry } from "../lib/types";
 import { useBackendStore } from "../store";
 import { XrSession } from "../xr-session";
@@ -33,9 +34,27 @@ export function HomePage() {
   const pollAttempt = useRef(0);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const configured = health?.onboarding?.configured === true;
+  const mockMode = health !== null && !configured;
+
+  const mockFrames = MOCK_SESSION.frames_in;
+  const framesIn = health?.teleop?.frames_in ?? (mockMode ? mockFrames : 0);
+
+  const mockCatalog: Record<string, RobotCatalogEntry> = useMemo(
+    () =>
+      Object.fromEntries(
+        MOCK_ROBOTS.map((r) => [
+          r.robot_id,
+          { status: r.status, robot_id: r.robot_id, display_name: r.display_name },
+        ]),
+      ),
+    [],
+  );
+
   const catalog = useMemo(
-    () => health?.teleop?.robots ?? FALLBACK_ROBOTS,
-    [health?.teleop?.robots],
+    () => health?.teleop?.robots ?? (mockMode ? mockCatalog : FALLBACK_ROBOTS),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [health?.teleop?.robots, mockMode, mockCatalog],
   );
 
   const robotOptions = useMemo(
@@ -127,6 +146,35 @@ export function HomePage() {
 
   return (
     <>
+      {mockMode && (
+        <div
+          className="page-card"
+          data-testid="mock-data-banner"
+          style={{ border: "1px dashed var(--danger, #dc2626)", marginBottom: "1rem" }}
+        >
+          <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--shell-muted)" }}>
+            <span data-testid="mock-badge" className="status-pill warn">
+              MOCK
+            </span>{" "}
+            Sample teleop data shown while the robot bridge is not connected. It clears
+            automatically once yahboom-mcp reports ready.
+          </p>
+        </div>
+      )}
+
+      {mockMode && (
+        <section className="page-card" data-testid="onboarding-cue">
+          <h2>Complete onboarding — connect Boomy</h2>
+          <p style={{ margin: "0 0 1rem", color: "var(--shell-muted)", fontSize: "0.9rem" }}>
+            Start the robot bridge (yahboom-mcp on port 10892) and restart this backend, or drive
+            the vboomy virtual twin without hardware.
+          </p>
+          <a className="btn danger" href="#/settings">
+            Open setup guide
+          </a>
+        </section>
+      )}
+
       <div className="page-grid">
         <div className="stat-card" data-testid="kpi-server">
           <dt>Backend</dt>
@@ -138,7 +186,7 @@ export function HomePage() {
         </div>
         <div className="stat-card" data-testid="kpi-webrtc">
           <dt>Frames in</dt>
-          <dd>{health?.teleop?.frames_in ?? 0}</dd>
+          <dd>{framesIn}</dd>
         </div>
         <div className="stat-card" data-testid="kpi-tools">
           <dt>Uptime</dt>

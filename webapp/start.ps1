@@ -98,18 +98,18 @@ function Start-BackendProcess {
 
 function Start-FrontendProcess {
     if (-not (Test-Path (Join-Path $PSScriptRoot "node_modules"))) {
-        Write-Host "node_modules missing - running npm install..." -ForegroundColor Yellow
-        Start-Process cmd -WorkingDirectory $PSScriptRoot -ArgumentList "/c", "npm", "install" -Wait -NoNewWindow
+        Write-Host "node_modules missing - running bun install..." -ForegroundColor Yellow
+        Start-Process "C:\Users\sandr\.bun\bin\bun.exe" -WorkingDirectory $PSScriptRoot -ArgumentList "install" -Wait -NoNewWindow
     }
     if ($Detached) {
         $frontendArgs = @(
             "-NoLogo", "-NoExit", "-Command",
-            "Set-Location '$PSScriptRoot'; npm run dev"
+            "Set-Location '$PSScriptRoot'; bun run dev"
         )
         return Start-Process pwsh -ArgumentList $frontendArgs -WorkingDirectory $PSScriptRoot -WindowStyle Minimized -PassThru
     }
-    # npm is npm.cmd on Windows - invoke via cmd.exe (see yahboom-mcp webapp/start.ps1)
-    return Start-Process cmd -WorkingDirectory $PSScriptRoot -ArgumentList "/c", "npm", "run", "dev" -NoNewWindow -PassThru
+    # bun.exe on Windows (see BUN_STANDARDS)
+    return Start-Process "C:\Users\sandr\.bun\bin\bun.exe" -WorkingDirectory $PSScriptRoot -ArgumentList "run", "dev" -NoNewWindow -PassThru
 }
 
 Write-Host ""

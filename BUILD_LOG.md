@@ -1,5 +1,35 @@
 # Teleoperator MCP — Build Log
 
+## 2026-08-19 — assfix round 2 (voice control + remainder)
+
+### Voice control via speech-mcp STT (fleet voice command bus)
+- `teleop_voice_command` MCP tool — maps STT transcripts to domain actions (estop, takeover, mode, gaze, LiveKit, status) via deterministic keyword rules (`src/teleoperator_mcp/voice_commands.py`)
+- `POST /api/v1/teleop/voice` REST mirror (VoiceCommandBody)
+- Registered `teleop` entity + handlers in `mcp-central-docs/config/voice_command_bus.yaml`; `teleoperator` server added to fleet-agent `FLEET_SERVERS` (http://127.0.0.1:10901/mcp)
+- Tests: `tests/test_voice_commands.py` (11 tests)
+- Tool lists updated in `/api/capabilities`, `/api/v1/diagnostics`, README, llms-full.txt, docs/TOOLS.md
+
+### Onboarding (ONBOARDING_STANDARD.md)
+- `docs/ONBOARDING.md` created (what/cost/prereqs/steps/pitfalls/sanity/declared doubles)
+- `INSTALL.md` created with ONBOARDING link near top; README doc-table row added
+- Health `onboarding.configured` signal (yahboom-mcp probe at `/api/v1/health`)
+- Webapp: red under-hero `onboarding-cue` CTA + MOCK-until-onboarded banner/badges (`mock-data-banner`, `mock-badge`), clears when configured
+
+### bun (fleet BUN_STANDARDS)
+- `bun install` migrated lockfile; `bun.lock` committed, `package-lock.json` removed + gitignored
+- CI: `oven-sh/setup-bun@v2` + `bun install --frozen-lockfile`; justfile bootstrap/web/dev/lint/ci use bun; start.ps1 + e2e-start-all.ps1 use bun
+
+### Webapp SOTA remainder
+- FloatingChat provider/model wired to Zustand `useLlmStore` (no duplicate localStorage state)
+- Inbox + Skills pages added (catch-them-all complete), nav + routes + page titles
+- SettingsPage loading/empty/error states + Re-scan button
+- Ctrl+K focuses log search (Ctrl+L logger, Ctrl+H help already in place)
+
+### LOW items
+- `renovate.json` added (fleet template)
+- `.agents/skills/` Antigravity session-start skill + config.json
+- ghaudit run: `reports/ghaudit-2026-08-19.md` + `.ghaudit-timestamp` (repo clean: 0 issues, 0 PRs, 16 topics, public)
+
 ## 2026-08-19 — assfix pass
 
 ### Assessment

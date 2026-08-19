@@ -56,6 +56,10 @@ Show Teleoperator robot status and connection health as a rich Prefab App card. 
 
 Gracefully shut down the teleoperator server: stops LiveKit publisher, disconnects WebXR clients, exits. Args: `confirm` (MUST be `true`).
 
+### teleop_voice_command
+
+Execute a voice command from speech-mcp STT: emergency stop, take over, center camera, look left/right/up/down, start/stop LiveKit video, set base/gaze to AUTO/DIRECT, or status. Keyword-rule dispatch, no LLM. Args: `transcript`.
+
 ---
 
 ## Skills, prompts, resources
@@ -90,6 +94,7 @@ Gracefully shut down the teleoperator server: stops LiveKit publisher, disconnec
 | POST | /api/v1/teleop/takeover | REST mirror of teleop_takeover |
 | POST | /api/v1/teleop/gaze | REST mirror of teleop_set_gaze |
 | POST | /api/v1/teleop/gaze/center | REST mirror of teleop_gaze_center |
+| POST | /api/v1/teleop/voice | REST mirror of teleop_voice_command (STT transcript) |
 | POST | /api/v1/teleop/set_mode | REST mirror of teleop_set_mode |
 | POST | /api/v1/recording/export | Export JSONL to LeRobot parquet |
 | POST | /api/shutdown | Graceful shutdown (confirm=true) |

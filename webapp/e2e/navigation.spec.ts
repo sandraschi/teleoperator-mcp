@@ -12,6 +12,8 @@ test('nav walk visits all sidebar pages', async ({ page }) => {
   await page.goto('/');
   const nav = [
     ['/#/tools', 'MCP Tools'],
+    ['/#/inbox', 'Activity Inbox'],
+    ['/#/skills', 'Supervisor Skills'],
     ['/#/logs', 'Event Logs'],
     ['/#/apps', 'Fleet Apps'],
     ['/#/settings', 'Settings'],

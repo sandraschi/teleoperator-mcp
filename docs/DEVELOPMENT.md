@@ -31,7 +31,7 @@ docs/              Architecture and domain documentation
 ## Prerequisites
 
 - Python 3.12+ and uv
-- Node.js (npm) for the webapp
+- [bun](https://bun.sh) (fleet JS package manager for the webapp)
 - just (fleet task runner) — optional but recommended
 - For native builds: Rust toolchain + Tauri CLI
 
@@ -41,17 +41,17 @@ docs/              Architecture and domain documentation
 just bootstrap
 ```
 
-This runs `uv sync --all-extras`, `npm install` in `webapp/`, and `pre-commit install`.
+This runs `uv sync --all-extras`, `bun install` in `webapp/`, and `pre-commit install`.
 
 ## Gates
 
 The fleet five-gate shape: ruff (style), pyright (types) + tsc (types), pytest (behavior).
 
 ```powershell
-just lint       # ruff check + tsc --noEmit
+just lint       # ruff check + tsc + biome
 just fmt        # ruff format
 just test       # pytest tests/
-just ci         # uv sync + pytest + npm ci + npm run check (matches CI)
+just ci         # uv sync + pytest + bun install + check + biome (matches CI)
 ```
 
 Run everything by hand:
@@ -61,7 +61,8 @@ uv run ruff check src/
 uv run ruff format src/ --check
 uv run pyright src/
 uv run pytest tests/ -q
-Set-Location webapp; npm run check
+Set-Location webapp; bun run check
+Set-Location webapp; bun run biome:ci
 ```
 
 ## Tests
@@ -103,7 +104,7 @@ uv run pre-commit run --all-files
 ## CI
 
 `.github/workflows/ci.yml` runs on Windows: uv sync, ruff check, ruff format check, pyright,
-pytest, `npm ci`, `npm run check`, and `npm run build`. Local equivalent: `just ci`.
+pytest, `bun install`, `bun run check`, and `bun run build`. Local equivalent: `just ci`.
 
 ## Adding a tool
 
