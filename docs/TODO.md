@@ -64,7 +64,7 @@ The abstraction that makes the hardware ladder a driver swap.
 
 - [x] Log every teleop session as **LeRobot-compatible JSONL** (pose + resolved commands + authority). See [LEROBOT.md](LEROBOT.md).
 - [x] **Parquet export** — `scripts/export-lerobot.ps1`, `POST /api/v1/recording/export`. See [LEROBOT.md](LEROBOT.md).
-- [ ] Video frames in parquet (depends on M5 LiveKit egress sync).
+- [x] **Video frames in episodes** — LiveKit egress sink taps decoded JPEGs, matches them to teleop frames, saves `images/observation.image/`, and exports `observation.image.image` into parquet. See [LEROBOT.md](LEROBOT.md). *(No mp4/H.264 ingest — per-frame JPEGs; acceptable for training frames, not streaming.)*
 - [x] Boomy base-only demos are recorded to prove the pipeline before manipulation hardware exists.
 
 ---

@@ -297,6 +297,15 @@ split automatically per session. `POST /api/v1/recording/export` converts comple
 to LeRobot v2.1 parquet format for downstream training. The export endpoint accepts optional
 input dir, output dir, episode indices, and overwrite flag.
 
+**Video frames (egress sink):** while a session is recording, the LiveKit publisher hands each
+decoded JPEG to the egress sink, which buffers it and matches it to the nearest teleop frame
+(within `TELEOP_LIVEKIT_EGRESS_TOLERANCE_MS`). Matched frames are saved under
+`images/observation.image/` and carried into the parquet as an `observation.image.image`
+column, so a VLA episode has observations, not just actions. Episodes can be replayed and
+curated (keep/reject/uncertain) via `GET /api/v1/episodes` and
+`POST /api/v1/episodes/{idx}/curate`. A dataset without observation frames is a broken
+dataset — the hub publish script refuses it.
+
 ## Safety Governor
 
 Safety is enforced at multiple layers:

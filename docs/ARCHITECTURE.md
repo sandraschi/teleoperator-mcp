@@ -49,22 +49,25 @@ Headset URL: Tailscale Serve → **10900** only. LiveKit is a **second** connect
 
 ```
 server.py          FastAPI + MCP tools + REST
-ws/handler.py      WebSocket session, watchdog, recording hooks
-runtime.py         bind_robot(?robot=), arbiter singleton
-adapters/          BoomyAdapter → yahboom REST
-arbiter/           DIRECT / AUTO per group (base, gaze)
-producers/         human_pose, nav_stub (AUTO crawl)
-livekit/           MJPEG → LiveKit publisher, JWT tokens
-recording/         LeRobot JSONL episodes (M4)
+auth.py            Operator claim/token registry (WS gate; estop open)
+tasks.py           Language goal -> AUTO waypoint plan
+voice_commands.py  STT transcript -> domain action keyword parser
+ws/handler.py      WebSocket session, watchdog, presence deadman, recording hooks
+runtime.py         bind_robot(?robot=), arbiter + VLA + waypoint singletons
+adapters/          BoomyAdapter → yahboom REST (+ bumi, vboomy)
+arbiter/           DIRECT / AUTO / SHARED per group (base, gaze, manip)
+producers/         human_pose, nav_stub, waypoint (AUTO), fake_vla (test stand-in)
+livekit/           MJPEG → LiveKit publisher, JWT tokens, egress feed
+recording/         LeRobot JSONL episodes + egress frame sink + parquet export
 ```
 
 **Rule:** pose never goes through MCP tool calls. MCP is seconds-scale supervision; WebSocket is the hot path.
 
 ---
 
-## Data logged (M4)
+## Data logged (M4 + egress)
 
-Each VR session can write JSONL under `data/teleop_recordings/`. See [LEROBOT.md](LEROBOT.md) — pose, resolved commands, authority state. Video sync is future work (M5 + M4).
+Each VR session can write JSONL under `data/teleop_recordings/`. See [LEROBOT.md](LEROBOT.md) — pose, resolved commands, authority state, and (via the egress sink) synced video frames under `images/observation.image/`. Parquet export carries `observation.image.image` into the chunked dataset.
 
 ---
 

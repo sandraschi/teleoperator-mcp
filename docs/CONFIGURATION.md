@@ -67,6 +67,12 @@ files.
 | TELEOP_SPEECH_ENABLED | 1 | Spoken warnings |
 | TELEOP_SPEECH_MCP_URL | http://127.0.0.1:10909 | speech-mcp endpoint |
 | TELEOP_SPEECH_PROVIDER | windows | Speech provider (SAPI fallback) |
+| TELEOP_REQUIRE_CLAIM | 1 | Operator claim gate: WS teleop requires a claim token (estop stays open) |
+| TELEOP_PRESENCE_TIMEOUT_S | 3 | Seconds without a headset presence pulse before estop |
+| TELEOP_VOICE_LLM_MODEL | gemma3:4b | Ollama model for free-form voice fallback |
+| TELEOP_LIVEKIT_EGRESS_ENABLED | 1 | Record decoded video frames into teleop episodes |
+| TELEOP_LIVEKIT_EGRESS_TOLERANCE_MS | 300 | Max offset between a teleop frame and its video frame |
+| TELEOP_LIVEKIT_EGRESS_INTERVAL | 2 | Capture every Nth decoded video frame |
 
 ## Ports
 
@@ -99,6 +105,25 @@ The backend allows the origins in `TELEOP_CORS_ORIGINS` plus an unconditional re
 - The publisher reads the robot MJPEG stream (default `{yahboom_api_url}/stream`), downscales
   to the configured frame size, and publishes VP8 at `TELEOP_LIVEKIT_PUBLISHER_FPS`.
 - If MJPEG fails, `TELEOP_LIVEKIT_SNAPSHOT_FALLBACK=1` polls snapshots instead.
+- **Egress sink:** while recording is active, each decoded publisher frame is buffered and
+  matched to the nearest teleop frame (within `TELEOP_LIVEKIT_EGRESS_TOLERANCE_MS`), saved
+  under `images/observation.image/`, and exported as `observation.image.image`. Set
+  `TELEOP_LIVEKIT_EGRESS_ENABLED=0` to skip frame capture.
+
+## Operator claim (safety)
+
+Any browser on the tailnet can reach the backend, so before a WebXR session can drive a
+robot the operator must claim it:
+
+1. `POST /api/v1/session/claim` with `{"operator_id": "...", "robot_id": "boomy"}` → returns a
+   token.
+2. Connect `/ws/teleop?robot=boomy&token=...` with it.
+3. Release with `POST /api/v1/session/release` (`{"token": ...}`).
+
+The e-stop path is **never** gated — estop works without a token. Set
+`TELEOP_REQUIRE_CLAIM=0` to disable the gate (dev / bench / virtual twins only). The webapp
+Home page has a claim UI that gates Enter VR. Multi-robot supervision: `GET /api/v1/supervision`
+shows every robot's claim + reachability (drive stays single-session).
 
 ## Robot adapters
 

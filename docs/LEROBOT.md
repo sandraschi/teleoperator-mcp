@@ -16,6 +16,11 @@ data/teleop_recordings/
       session.json
       frames.jsonl
       summary.json
+      images/                    # egress sink: decoded video frames
+        observation.image/
+          000000.jpg
+          000001.jpg
+          ...
 ```
 
 ## Export layout (LeRobot parquet)
@@ -29,11 +34,32 @@ data/lerobot_export/
   data/
     chunk-000/
       episode_000000.parquet
+      episode_000000/
+        images/
+          observation.image/
+            000000.jpg
+            ...
 ```
 
-Parquet columns: `timestamp`, `frame_index`, `episode_index`, `index`, `task_index`, `observation.state`, `action`, head/controller floats, `next.done`.
+Parquet columns: `timestamp`, `frame_index`, `episode_index`, `index`, `task_index`, `observation.state`, `action`, head/controller floats, `observation.image.image` (when egress recorded frames), `next.done`.
 
-Video is **not** embedded yet (M5: LiveKit egress sync). `meta/info.json` sets `"video_path": null`.
+## Video frames (LiveKit egress sink)
+
+The **egress sink** closes the flywheel loop: while a teleop session is active, the LiveKit
+publisher hands each decoded JPEG to `recording/egress.py`, which buffers it and matches it
+to the nearest teleop frame (within `TELEOP_LIVEKIT_EGRESS_TOLERANCE_MS`). Matched frames
+are saved under `images/observation.image/` and referenced by an `observation.image.image`
+column (a dataset-relative path). The parquet exporter copies the images into the chunked
+layout and sets `info.json` `video_path` when any frames were recorded.
+
+| Env | Default | Meaning |
+|-----|---------|---------|
+| TELEOP_LIVEKIT_EGRESS_ENABLED | 1 | Record decoded video frames into episodes |
+| TELEOP_LIVEKIT_EGRESS_TOLERANCE_MS | 300 | Max offset between a teleop frame and its video frame |
+| TELEOP_LIVEKIT_EGRESS_INTERVAL | 2 | Capture every Nth decoded video frame |
+
+A dataset without observation frames is a broken dataset — `scripts/publish-lerobot-hub.py`
+refuses to publish one.
 
 ## Export
 
@@ -73,6 +99,7 @@ Use your policy config / WALL-OSS recipe as needed. Virtual-twin demos (vBoomy, 
 | `action` | Same vector (imitation target) |
 | `observation.head.*` | WebXR head |
 | `observation.controller.*` | Trigger + stick |
+| `observation.image.image` | Egress frame path (when recorded) |
 | `authority` / `sources` | Arbiter state |
 
 ## Enable / disable capture
@@ -93,4 +120,4 @@ Recording starts on WebSocket connect (`/ws/teleop?robot=…`) and finalizes on 
 
 - [VIRTUAL_TWINS.md](VIRTUAL_TWINS.md) — Resonite vBots + same recording path
 - [VBOT_CREATIVE_TWINS.md](VBOT_CREATIVE_TWINS.md) — Mechazilla, kaiju, scale
-- [LIVEKIT.md](LIVEKIT.md) — video pipe (future parquet video sync)
+- [LIVEKIT.md](LIVEKIT.md) — video pipe + egress sink (frames into episodes)

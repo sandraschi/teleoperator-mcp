@@ -66,5 +66,8 @@ just build-native   # requires Rust toolchain + Tauri CLI
 Invoke-RestMethod http://127.0.0.1:10901/api/v1/health
 ```
 
-`status: ok` and `onboarding.configured: true` once yahboom-mcp is reachable. See
+`status: ok` and `onboarding.configured: true` once yahboom-mcp is reachable. Before driving
+from a headset, **claim the robot** (`POST /api/v1/session/claim` or the Home page claim UI) —
+the WS gate requires it, estop stays open. Recorded episodes include synced video frames via
+the egress sink (see [docs/LEROBOT.md](docs/LEROBOT.md)). See
 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if anything is off.

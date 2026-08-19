@@ -11,8 +11,11 @@ matching section.
 | No video in headset | `teleop_livekit_status()` → running, connected, last_error | start publisher; restart LiveKitSFU service |
 | WebXR not available | browser + HTTPS | use Tailscale Serve; check navigator.xr |
 | WebSocket disconnects | frames in / watchdog | raise TELEOP_WATCHDOG_MS; keep tab foreground |
+| **WS rejected (4001)** | claim token | claim the robot (`POST /api/v1/session/claim` or Home page); estop stays open |
+| **Enter VR disabled** | claim gate | add operator name on Home + Claim robot |
 | AUTO mode won't start | WebXR session | pass confirm_bench=true on the bench |
 | CORS blocked in headset | browser console | set TELEOP_CORS_ORIGINS incl. ts.net origin |
+| **No frames in episodes** | egress status | check `/api/v1/livekit/egress`, TELEOP_LIVEKIT_EGRESS_ENABLED, publisher running |
 | Backend won't start | port + traceback | clear port 10901, uv sync, check .env |
 | Health endpoint down | process check | verify backend started; check logs ring buffer |
 
@@ -25,6 +28,29 @@ matching section.
 5. Confirm authority: `base` must be DIRECT (or AUTO with an active producer).
 6. Check `/api/v1/health` for the yahboom API URL actually in use — a stale
    `TELEOP_YAHBOOM_API_URL` silently points at the wrong target.
+
+## WebSocket rejected with 4001 (claim)
+
+The operator claim gate is on (`TELEOP_REQUIRE_CLAIM=1`). Claim the robot before connecting:
+
+1. `POST /api/v1/session/claim` with `{"operator_id": "...", "robot_id": "boomy"}` → token.
+2. Connect `/ws/teleop?robot=boomy&token=<token>`.
+3. Or use the Home page claim UI — Enter VR stays disabled until claimed.
+
+E-stop never requires a token. To disable the gate on a bench/development machine, set
+`TELEOP_REQUIRE_CLAIM=0`.
+
+## No video frames in recorded episodes
+
+Episodes should carry an `observation.image.image` column from the egress sink. If not:
+
+1. `GET /api/v1/livekit/egress` — is `egress_enabled` true and `captured_total` rising?
+2. Is the LiveKit publisher running? Frames only flow while it publishes
+   (`teleop_livekit_status()` → `running`).
+3. `TELEOP_LIVEKIT_EGRESS_ENABLED=1` and a sane `TELEOP_LIVEKIT_EGRESS_TOLERANCE_MS`
+   (default 300 ms — the teleop frame and its video frame must land close together).
+4. Re-export the episode — `POST /api/v1/recording/export` — and confirm the parquet has the
+   image column.
 
 ## No video in the headset
 

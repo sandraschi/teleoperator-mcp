@@ -44,18 +44,26 @@ twin in Resonite.
    `onboarding` block `configured: true` once yahboom-mcp is reachable.
 5. Open the webapp at `http://localhost:10900` (or the Tailscale Serve HTTPS URL on the
    headset). The dashboard onboarding cue clears once the bridge reports configured.
-6. Select a robot (boomy, bumi, or vboomy) and press Enter VR. Squeeze a grip to take over,
+6. **Claim the robot** (safety gate): enter your operator name on the Home page and click
+   *Claim robot*. The teleop socket requires this token; e-stop always works without it.
+   You can also claim via `POST /api/v1/session/claim`.
+7. Select a robot (boomy, bumi, or vboomy) and press Enter VR. Squeeze a grip to take over,
    hold the trigger to drive with the right stick.
-7. Optional video: start the LiveKit SFU service and call
+8. Optional video: start the LiveKit SFU service and call
    `teleop_livekit_publisher_start()` (or set `TELEOP_LIVEKIT_AUTO_START_PUBLISHER=1`).
+   Recorded sessions include synced video frames via the egress sink
+   (see [LEROBOT.md](LEROBOT.md)).
 
 ## Pitfalls
 
 - **WebXR requires HTTPS.** If you open the webapp over HTTP on the headset, `Enter VR` will
   fail. Use `-WithTailscaleServe` (or your own HTTPS reverse proxy).
+- **Enter VR stays disabled until you claim the robot.** The claim gate is on by default
+  (`TELEOP_REQUIRE_CLAIM=1`). Add your operator name on Home and click *Claim robot*.
 - **Watchdog stops the robot.** If pose frames stop for `TELEOP_WATCHDOG_MS` (default 1 s),
   drive latches off. Keep the headset tab in the foreground and the network under the
-  watchdog interval.
+  watchdog interval. The presence deadman additionally e-stops if the headset presence pulse
+  lapses (`TELEOP_PRESENCE_TIMEOUT_S`).
 - **AUTO is time-bounded.** AUTO base runs stop after `TELEOP_AUTO_MAX_DURATION_S` (10 s) and
   normally requires an active WebXR session — pass `confirm_bench=true` only on the bench.
 - **estop latches until takeover.** After `teleop_estop()` the robot stays stopped until

@@ -9,21 +9,24 @@ the gates, how to test, and the conventions to follow.
 src/teleoperator_mcp/
   server.py        Unified FastAPI + FastMCP gateway (tools, REST, WebSocket)
   config.py        pydantic-settings (TELEOP_ prefix)
+  auth.py          Operator claim/token registry (WS gate; estop open)
+  tasks.py         Language goal -> AUTO waypoint plan (teleop_task_dispatch)
+  voice_commands.py STT transcript -> domain action keyword parser
   activity_log.py  Ring-buffer logger + REST query/export/clear
-  safety.py        Watchdog, estop latch, AUTO timer
+  safety.py        Watchdog, estop latch, AUTO timer, presence deadman
   speech.py        Spoken warnings (speech-mcp / SAPI fallback)
-  runtime.py       Robot catalog
+  runtime.py       Robot catalog + shared arbiter/VLA/waypoint singletons
   types.py         Shared types
   adapters/        Robot adapters (boomy, bumi, vboomy) + registry
-  arbiter/         Dual-mode authority (DIRECT/AUTO) core + state
+  arbiter/         Authority arbiter (DIRECT/AUTO/SHARED) core + state
   mappers/         Pose/controller -> command mappers per robot
-  producers/       ProducerCommand producers (human_pose, nav_stub)
-  recording/       LeRobot JSONL session recording + export
+  producers/       ProducerCommand producers (human_pose, nav_stub, waypoint, fake_vla)
+  recording/       LeRobot JSONL recording + export + egress frame sink
   ws/              WebSocket teleop handler
   livekit/         LiveKit publisher, tokens, MJPEG source
 webapp/            React + Vite + Three.js WebXR client
 native/            Tauri 2.0 desktop shell (NSIS installer)
-scripts/           Bench, CUA smoke, fleet start helpers
+scripts/           Bench, CUA smoke, latency bench, hub publish, fleet start helpers
 tests/             Pytest suite
 docs/              Architecture and domain documentation
 ```
@@ -124,6 +127,20 @@ pytest, `bun install`, `bun run check`, and `bun run build`. Local equivalent: `
 3. Add a mapper in `src/teleoperator_mcp/mappers/` if it maps poses differently.
 4. Add `TELEOP_*` settings in `config.py` for its URL and gains.
 5. Add it to `runtime.py` catalog, `llms-full.txt`, and the webapp robot list.
+
+## Adding a producer (autonomy under the arbiter)
+
+Producers emit `ProducerCommand` keyed by actuator group; the arbiter forwards only the
+owning producer's command per group.
+
+1. Implement a producer in `src/teleoperator_mcp/producers/` (see `nav_stub.py` and
+   `fake_vla.py` for reference). It must expose `tick() -> ProducerCommand` and
+   `reset_plan()` (hand-back replan).
+2. Register it in `runtime.py` and thread it into the `AuthorityArbiter`.
+3. To make it selectable, add an owner branch in `arbiter/core.py` `_resolve_group_*` and a
+   mode path in `tasks.py` if it should respond to `teleop_task_dispatch`.
+4. Out-of-process VLA producers are clients speaking the same `ProducerCommand` schema over
+   the fleet bridge (`vla-mcp`); the in-process `FakeVlaProducer` is the test stand-in.
 
 ## Debugging
 

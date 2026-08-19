@@ -267,9 +267,13 @@ Pose WebSocket is unchanged — see [WEBXR.md](WEBXR.md).
 
 ---
 
-## Recording (M4) and video
+## Recording (M4) and video egress
 
-Session JSONL ([LEROBOT.md](LEROBOT.md)) logs pose and commands today, **not** video files. Parquet + synced video is a follow-on once M5 is stable (LiveKit egress or frame timestamps).
+Session JSONL ([LEROBOT.md](LEROBOT.md)) logs pose + commands **and** synced video frames:
+the LiveKit publisher feeds each decoded JPEG to the egress sink, which matches it to the
+nearest teleop frame and saves it under the episode's `images/observation.image/`. The
+parquet export carries `observation.image.image` and copies the images into the chunked
+layout. See [LEROBOT.md](LEROBOT.md) § Video frames and `TELEOP_LIVEKIT_EGRESS_*` settings.
 
 ---
 
