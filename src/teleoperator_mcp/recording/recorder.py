@@ -12,6 +12,7 @@ from typing import Any
 
 from ..config import settings
 from ..types import ProducerCommand
+from .egress import get_egress
 
 logger = logging.getLogger("teleoperator_mcp.recording")
 
@@ -66,6 +67,7 @@ class SessionRecorder:
         if not settings.recording_enabled:
             return None
         self.end_session()
+        get_egress().reset()
         session_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         ep_idx = self._episode_index
         episode_dir = self.base_dir / "data" / f"episode_{ep_idx:06d}"
@@ -137,6 +139,17 @@ class SessionRecorder:
             "authority": authority,
             "sources": sources,
         }
+        # Egress sink: match this teleop frame to the nearest decoded video frame.
+        episode_dir = Path(self.state.episode_dir) if self.state.episode_dir else None
+        if episode_dir is not None:
+            video = get_egress().take(
+                row["timestamp"], settings.livekit_egress_tolerance_ms / 1000.0
+            )
+            if video is not None:
+                rel = get_egress().save_to_episode(video, episode_dir, row["frame_index"])
+                if rel:
+                    bare = video.key.split(".")[-1]  # "observation.image" -> "image"
+                    row[f"observation.image.{bare}"] = rel
         self._frames.append(row)
         self.state.frame_count += 1
 
@@ -171,6 +184,7 @@ class SessionRecorder:
         self._frames = []
         self.state = RecordingState()
         self._episode_index = ep_idx + 1
+        get_egress().reset()
         logger.info("recording ended session=%s frames=%s", session_id, frame_count)
         return summary
 

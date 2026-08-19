@@ -1,5 +1,13 @@
 # Teleoperator MCP — Build Log
 
+## 2026-08-19 — round 4: LiveKit egress sink (T3.3 complete)
+
+- `recording/egress.py`: ring-buffer frame sink fed by the publisher (mjpeg + snapshot loops); recorder matches to teleop frames, saves `images/observation.image/`, writes `observation.image.image` column.
+- Export carries image columns into parquet + copies images into chunked layout + declares `info.json` feature (video_path set when images exist).
+- `GET /api/v1/livekit/egress` + `GET /api/v1/episodes/{idx}/image/{frame}` (path-traversal guarded); webapp Episodes thumbnail.
+- Env: `TELEOP_LIVEKIT_EGRESS_ENABLED/TOLERANCE_MS/INTERVAL`.
+- 9 new tests (`tests/test_egress.py`); 73 total, 63% cov. Gates green.
+
 ## 2026-08-19 — round 3: VLA fleet control tower (12 features)
 
 ### Tier 1 (safety/production)

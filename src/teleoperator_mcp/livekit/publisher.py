@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 import httpx
 
 from ..config import settings
+from ..recording.egress import get_egress
 from .mjpeg import decode_jpeg_to_i420, iter_mjpeg_jpegs
 from .tokens import issue_publisher_token
 
@@ -171,6 +172,7 @@ class BoomyLiveKitPublisher:
                         data=i420,
                     )
                     video_source.capture_frame(frame)
+                    get_egress().capture(jpeg)
                     self.state.frames_published += 1
                     self.state.last_frame_at = time.time()
                     self.state.last_error = None
@@ -209,6 +211,7 @@ class BoomyLiveKitPublisher:
                         data=i420,
                     )
                     video_source.capture_frame(frame)
+                    get_egress().capture(resp.content)
                     self.state.frames_published += 1
                     self.state.last_frame_at = time.time()
                     self.state.last_error = None

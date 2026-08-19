@@ -12,7 +12,13 @@ interface Episode {
 
 interface EpisodeDetail {
   episode_index: number;
-  frames: Array<{ frame_index: number; action: number[]; producer_id: string; timestamp: number }>;
+  frames: Array<{
+    frame_index: number;
+    action: number[];
+    producer_id: string;
+    timestamp: number;
+    "observation.image.observation_image"?: string;
+  }>;
 }
 
 const CURATION_LABELS = ["keep", "reject", "uncertain"];
@@ -115,6 +121,14 @@ export function EpisodesPage() {
           <h3>
             Episode {detail.episode_index} — {detail.frames.length} frames
           </h3>
+          {detail.frames[0]?.["observation.image.observation_image"] && (
+            <img
+              src={`${API_BASE}/api/v1/episodes/${detail.episode_index}/image/${detail.frames[0].frame_index}`}
+              alt={`Episode ${detail.episode_index} first frame`}
+              data-testid="episode-thumbnail"
+              style={{ maxWidth: "320px", borderRadius: "8px", marginBottom: "0.75rem" }}
+            />
+          )}
           <div
             style={{ fontSize: "0.82rem", color: "var(--shell-muted)", marginBottom: "0.75rem" }}
           >

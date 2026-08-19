@@ -103,6 +103,7 @@ Requires `confirm=true`. Stops publisher, disconnects clients, exits.
 | GET | /api/v1/livekit/config | Public LiveKit connection info |
 | POST | /api/v1/livekit/token | Subscribe JWT `{identity, room?, name?}` |
 | GET | /api/v1/livekit/status | Publisher status |
+| GET | /api/v1/livekit/egress | Egress sink status (video frames recorded into episodes) |
 | POST | /api/v1/livekit/publisher/start | Start publisher |
 | POST | /api/v1/livekit/publisher/stop | Stop publisher |
 | POST | /api/v1/teleop/estop | REST mirror of teleop_estop |
@@ -118,6 +119,7 @@ Requires `confirm=true`. Stops publisher, disconnects clients, exits.
 | GET | /api/v1/episodes | List recorded episodes |
 | GET | /api/v1/episodes/{idx} | One episode including frames |
 | POST | /api/v1/episodes/{idx}/curate | Attach keep/reject/uncertain label + note |
+| GET | /api/v1/episodes/{idx}/image/{frame} | Serve one egress frame JPEG (path-traversal guarded) |
 | POST | /api/v1/teleop/set_mode | REST mirror of teleop_set_mode (group, mode, confirm_bench) |
 | POST | /api/v1/recording/export | Export JSONL to LeRobot parquet |
 | POST | /api/shutdown | Graceful shutdown (confirm=true) |

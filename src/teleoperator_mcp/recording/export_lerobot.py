@@ -67,6 +67,17 @@ def _load_frames(episode_dir: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _image_path_rewrite(value: str) -> str:
+    """Rewrite a recorder-root image path to the chunked dataset layout.
+
+    Recorder writes:        data/episode_000000/images/<key>/000000.jpg
+    Dataset writes:         data/chunk-000/episode_000000/images/<key>/000000.jpg
+    """
+    text = str(value).replace("\\", "/")
+    stripped = text[5:] if text.startswith("data/") else text
+    return f"data/chunk-000/{stripped}"
+
+
 def _episode_to_table_rows(
     frames: list[dict[str, Any]],
     *,
@@ -86,24 +97,27 @@ def _episode_to_table_rows(
             action.append(0.0)
         ts = float(frame.get("timestamp", 0.0))
         fi = int(frame.get("frame_index", len(rows)))
-        rows.append(
-            {
-                "timestamp": ts,
-                "frame_index": fi,
-                "episode_index": episode_index,
-                "index": global_index,
-                "task_index": task_index,
-                "observation.state": obs_state[:5],
-                "action": action[:5],
-                "observation.head.yaw": float(frame.get("observation.head.yaw", 0.0)),
-                "observation.head.pitch": float(frame.get("observation.head.pitch", 0.0)),
-                "observation.head.roll": float(frame.get("observation.head.roll", 0.0)),
-                "observation.controller.trigger": float(
-                    frame.get("observation.controller.trigger", 0.0)
-                ),
-                "next.done": fi >= len(frames) - 1,
-            }
-        )
+        row: dict[str, Any] = {
+            "timestamp": ts,
+            "frame_index": fi,
+            "episode_index": episode_index,
+            "index": global_index,
+            "task_index": task_index,
+            "observation.state": obs_state[:5],
+            "action": action[:5],
+            "observation.head.yaw": float(frame.get("observation.head.yaw", 0.0)),
+            "observation.head.pitch": float(frame.get("observation.head.pitch", 0.0)),
+            "observation.head.roll": float(frame.get("observation.head.roll", 0.0)),
+            "observation.controller.trigger": float(
+                frame.get("observation.controller.trigger", 0.0)
+            ),
+            "next.done": fi >= len(frames) - 1,
+        }
+        # Carry any egress image columns into the dataset (chunked path).
+        for key, value in frame.items():
+            if key.startswith("observation.image.") and isinstance(value, str):
+                row[key] = _image_path_rewrite(value)
+        rows.append(row)
         global_index += 1
     return rows, global_index
 
@@ -116,25 +130,25 @@ def _write_parquet(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
         raise ValueError("cannot write empty episode")
 
-    table = pa.Table.from_pylist(
-        rows,
-        schema=pa.schema(
-            [
-                ("timestamp", pa.float64()),
-                ("frame_index", pa.int64()),
-                ("episode_index", pa.int64()),
-                ("index", pa.int64()),
-                ("task_index", pa.int64()),
-                ("observation.state", pa.list_(pa.float32(), 5)),
-                ("action", pa.list_(pa.float32(), 5)),
-                ("observation.head.yaw", pa.float32()),
-                ("observation.head.pitch", pa.float32()),
-                ("observation.head.roll", pa.float32()),
-                ("observation.controller.trigger", pa.float32()),
-                ("next.done", pa.bool_()),
-            ]
-        ),
-    )
+    fields: list[pa.Field] = [
+        ("timestamp", pa.float64()),
+        ("frame_index", pa.int64()),
+        ("episode_index", pa.int64()),
+        ("index", pa.int64()),
+        ("task_index", pa.int64()),
+        ("observation.state", pa.list_(pa.float32(), 5)),
+        ("action", pa.list_(pa.float32(), 5)),
+        ("observation.head.yaw", pa.float32()),
+        ("observation.head.pitch", pa.float32()),
+        ("observation.head.roll", pa.float32()),
+        ("observation.controller.trigger", pa.float32()),
+        ("next.done", pa.bool_()),
+    ]
+    # Dynamic egress image columns: observation.image.<key> -> string (dataset-relative path).
+    image_cols = sorted({k for r in rows for k in r if k.startswith("observation.image.")})
+    fields.extend((name, pa.string()) for name in image_cols)
+
+    table = pa.Table.from_pylist(rows, schema=pa.schema(fields))
     pq.write_table(table, path, compression="snappy")
 
 
@@ -145,6 +159,7 @@ def _write_meta(
     total_frames: int,
     fps: int,
     robot_type: str,
+    has_images: bool = False,
 ) -> None:
     meta_dir = output_dir / "meta"
     meta_dir.mkdir(parents=True, exist_ok=True)
@@ -156,20 +171,29 @@ def _write_meta(
             encoding="utf-8",
         )
 
+    features = dict(FEATURES)
+    if has_images:
+        features["observation.image.image"] = {"dtype": "image", "shape": [1, 1, 3]}
     info = {
         "codebase_version": "v2.1",
         "robot_type": robot_type,
         "fps": fps,
-        "features": FEATURES,
+        "features": features,
         "total_episodes": len(episodes),
         "total_frames": total_frames,
         "total_tasks": 1,
         "chunks_size": 1000,
         "data_path": "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet",
-        "video_path": None,
+        "video_path": "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}/images/observation.image"
+        if has_images
+        else None,
         "exported_at": datetime.now(UTC).isoformat(),
         "source": "teleoperator-mcp JSONL",
-        "note": "Video columns not included; sync LiveKit egress in a future M5 step.",
+        "note": (
+            "Egress image frames recorded via the LiveKit egress sink (observation.image.*)."
+            if has_images
+            else "No image columns — enable TELEOP_LIVEKIT_EGRESS_ENABLED to capture video frames."
+        ),
     }
     (meta_dir / "info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
 
@@ -246,6 +270,12 @@ def export_lerobot_dataset(
         parquet_path = chunk_dir / parquet_name
         _write_parquet(parquet_path, rows)
 
+        # Copy egress images into the chunked layout next to the parquet.
+        src_images = episode_dir / "images"
+        if src_images.exists():
+            dst_images = chunk_dir / f"episode_{ep_idx:06d}" / "images"
+            shutil.copytree(src_images, dst_images, dirs_exist_ok=True)
+
         rel_parquet = str(parquet_path.relative_to(dst)).replace("\\", "/")
         parquet_files.append(rel_parquet)
         total_frames += len(rows)
@@ -270,8 +300,22 @@ def export_lerobot_dataset(
             skipped=skipped,
         )
 
+    has_images = any(
+        (
+            episode_dir := src
+            / (ep.get("path") or f"data/episode_{int(ep.get('episode_index', 0)):06d}")
+        ).exists()
+        and (episode_dir / "images").exists()
+        for ep in selected
+    )
+
     _write_meta(
-        dst, episodes=exported_meta, total_frames=total_frames, fps=fps, robot_type=robot_type
+        dst,
+        episodes=exported_meta,
+        total_frames=total_frames,
+        fps=fps,
+        robot_type=robot_type,
+        has_images=has_images,
     )
 
     msg = f"exported {len(exported_meta)} episode(s), {total_frames} frame(s) → {dst}"

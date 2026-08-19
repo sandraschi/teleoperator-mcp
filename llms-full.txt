@@ -92,6 +92,7 @@ Dispatch a language goal to the AUTO producer: forward, reverse, turn left/right
 | GET | /api/v1/livekit/config | Public LiveKit connection info |
 | POST | /api/v1/livekit/token | Issue subscriber JWT |
 | GET | /api/v1/livekit/status | LiveKit publisher status |
+| GET | /api/v1/livekit/egress | Egress sink status (video frames recorded into episodes) |
 | POST | /api/v1/livekit/publisher/start | Start camera publisher |
 | POST | /api/v1/livekit/publisher/stop | Stop camera publisher |
 | POST | /api/v1/teleop/estop | REST mirror of teleop_estop |
@@ -146,6 +147,9 @@ All prefixed with `TELEOP_` (loaded from .env). Key vars:
 | TELEOP_LIVEKIT_API_KEY / SECRET | devkey / secret | Must match LiveKit SFU keys |
 | TELEOP_LIVEKIT_SNAPSHOT_FALLBACK | 1 | Poll snapshots if MJPEG fails |
 | TELEOP_LIVEKIT_AUTO_START_PUBLISHER | 0 | Auto-start publisher at boot |
+| TELEOP_LIVEKIT_EGRESS_ENABLED | 1 | Record decoded video frames into teleop episodes |
+| TELEOP_LIVEKIT_EGRESS_TOLERANCE_MS | 300 | Max offset between a teleop frame and its video frame |
+| TELEOP_LIVEKIT_EGRESS_INTERVAL | 2 | Capture every Nth decoded video frame |
 
 ---
 

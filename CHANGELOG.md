@@ -1,5 +1,14 @@
 
 
+## [Unreleased] — 2026-08-19 (round 4: LiveKit egress sink)
+
+### Added
+- **LiveKit egress sink** (`recording/egress.py`): the publisher feeds each decoded JPEG into a ring buffer; the recorder matches it to the nearest teleop frame (`TELEOP_LIVEKIT_EGRESS_TOLERANCE_MS`), saves it under `images/observation.image/`, and writes an `observation.image.image` column — closing the T3.3 "half-dataset" gap.
+- Export carries `observation.image.*` into the parquet, copies `images/` into the chunked layout, and declares the image feature in `info.json` (`video_path` set when images exist).
+- `GET /api/v1/livekit/egress` status endpoint; webapp Episodes replay shows a frame thumbnail via `GET /api/v1/episodes/{idx}/image/{frame}`.
+- Config: `TELEOP_LIVEKIT_EGRESS_ENABLED`, `_TOLERANCE_MS`, `_INTERVAL`.
+- Tests: `tests/test_egress.py` (9 tests).
+
 ## [Unreleased] — 2026-08-19 (round 3: VLA fleet control tower)
 
 ### Added

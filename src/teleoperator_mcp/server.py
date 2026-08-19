@@ -40,6 +40,7 @@ from .livekit import (
     start_publisher,
     stop_publisher,
 )
+from .recording.egress import get_egress
 from .recording.recorder import curate_episode, get_episode, list_episodes
 from .runtime import get_waypoint, robots_catalog
 from .tasks import build_plan, plan_display
@@ -882,6 +883,12 @@ async def api_livekit_status() -> dict:
     return {"success": True, **get_publisher().status(), "config": livekit_public_config()}
 
 
+@app.get("/api/v1/livekit/egress")
+async def api_livekit_egress() -> dict:
+    """Egress sink status — video frames recorded into teleop episodes (data flywheel)."""
+    return {"success": True, "egress": get_egress().status()}
+
+
 @app.post("/api/v1/livekit/publisher/start")
 async def api_livekit_publisher_start() -> dict:
     return await start_publisher()
@@ -928,6 +935,28 @@ async def api_episode_detail(episode_index: int) -> dict:
     if ep is None:
         return {"success": False, "message": f"No episode {episode_index}"}
     return {"success": True, "episode": ep}
+
+
+@app.get("/api/v1/episodes/{episode_index}/image/{frame_index}")
+async def api_episode_image(episode_index: int, frame_index: int) -> Response:
+    """Serve one egress frame image (recorder-root path, path-traversal guarded)."""
+    from fastapi.responses import FileResponse, JSONResponse
+
+    ep = get_episode(episode_index)
+    if ep is None:
+        return JSONResponse({"success": False, "message": f"No episode {episode_index}"})
+    rel = ep.get("path") or f"data/episode_{episode_index:06d}"
+    base = Path(settings.recording_dir) / rel
+    img = base / "images" / "observation.image" / f"{frame_index:06d}.jpg"
+    if not img.exists() or not img.is_file():
+        return JSONResponse({"success": False, "message": "image not found"}, status_code=404)
+    try:
+        resolved = img.resolve()
+        if base.resolve() not in resolved.parents:
+            return JSONResponse({"success": False, "message": "invalid path"}, status_code=400)
+    except OSError:
+        return JSONResponse({"success": False, "message": "invalid path"}, status_code=400)
+    return FileResponse(resolved, media_type="image/jpeg")
 
 
 @app.post("/api/v1/episodes/{episode_index}/curate")

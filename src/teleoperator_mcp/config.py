@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     livekit_mjpeg_url: str = ""  # empty → {yahboom_api_url}/stream
     livekit_snapshot_fallback: bool = True
     livekit_auto_start_publisher: bool = False
+    # Egress sink: record video frames into teleop episodes (T3.3 / data flywheel).
+    livekit_egress_enabled: bool = True
+    livekit_egress_tolerance_ms: int = 300  # max offset between a teleop frame and its video frame
+    livekit_egress_interval: int = 2  # capture every Nth decoded video frame (1 = all)
     # AUTO safety (M3 nav stub)
     auto_max_duration_s: float = 10.0
     auto_warn_before_s: float = 3.0
