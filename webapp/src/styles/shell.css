@@ -199,11 +199,19 @@ body.in-xr #xr-canvas {
   border-radius: 0.2rem;
 }
 
-.log-line.level-DEBUG { color: hsl(230 8% 55%); }
-.log-line.level-INFO { color: hsl(200 70% 72%); }
-.log-line.level-WARNING { color: hsl(35 85% 68%); }
+.log-line.level-DEBUG {
+  color: hsl(230 8% 55%);
+}
+.log-line.level-INFO {
+  color: hsl(200 70% 72%);
+}
+.log-line.level-WARNING {
+  color: hsl(35 85% 68%);
+}
 .log-line.level-ERROR,
-.log-line.level-CRITICAL { color: hsl(0 75% 68%); }
+.log-line.level-CRITICAL {
+  color: hsl(0 75% 68%);
+}
 
 .page-card {
   background: var(--shell-surface);
@@ -341,7 +349,12 @@ body.in-xr #xr-canvas {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, hsl(230 14% 14%) 25%, hsl(230 14% 18%) 50%, hsl(230 14% 14%) 75%);
+  background: linear-gradient(
+    90deg,
+    hsl(230 14% 14%) 25%,
+    hsl(230 14% 18%) 50%,
+    hsl(230 14% 14%) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.2s infinite;
   border-radius: 0.35rem;
@@ -349,8 +362,12 @@ body.in-xr #xr-canvas {
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .help-prose {

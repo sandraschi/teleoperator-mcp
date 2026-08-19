@@ -78,4 +78,3 @@ Each VR session can write JSONL under `data/teleop_recordings/`. See [LEROBOT.md
 | HTTPS on Goliath | [HTTPS.md](HTTPS.md) |
 | Terms (VLA, arbiter, LeRobot) | [GLOSSARY.md](GLOSSARY.md) |
 | Full stack table | [STACK.md](STACK.md) |
-

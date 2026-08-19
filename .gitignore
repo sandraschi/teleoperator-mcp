@@ -28,13 +28,25 @@ ruff_errors.json
 node_modules/
 webapp/node_modules/
 webapp/dist/
+webapp/playwright-report/
+webapp/test-results/
 
 # Logs / scratch
 *.log
 tmp/
 *.bak
+*.bak.*
+*.bak-*
 .mcpb/
+*.mcpb
+
+# MCPB pack staging copy of src/ (see GITIGNORE_STANDARDS)
+mcpb/src/
+mcpb/.ruff_cache/
+
+# Runtime data
 data/teleop_recordings/
+data/lerobot_export/
 
 # Reports (generated — not source code)
 reports/

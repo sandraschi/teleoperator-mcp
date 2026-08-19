@@ -1,10 +1,10 @@
 """Bench AUTO via live backend REST (not a separate Python process)."""
+
 import json
 import sys
 import time
 import urllib.parse
 import urllib.request
-
 
 BASE = "http://127.0.0.1:10901"
 

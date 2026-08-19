@@ -41,6 +41,10 @@ Target architecture (arbiter, per-group authority, LeRobot logging, VLA producer
 |-----|----------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | **Two-pipe map** (control vs video), ports, module index |
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | **LeRobot, VLA, arbiter, WebXR**, fleet terms |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables, ports, CORS, LiveKit |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Layout, gates, conventions, contributing |
+| [docs/TOOLS.md](docs/TOOLS.md) | MCP tools + REST endpoint reference |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Symptom-first fix guide |
 | [docs/LIVEKIT.md](docs/LIVEKIT.md) | **Video return** — setup, env vars, troubleshooting |
 | [docs/LEROBOT.md](docs/LEROBOT.md) | Session recording (JSONL episodes) |
 | [docs/PRD.md](docs/PRD.md) | v1 product spec |
@@ -106,7 +110,6 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 | `teleop_livekit_publisher_start` / `_stop` | shipped (M5) |
 | `show_teleop_status_card` | shipped (Prefab) |
 | `teleop_shutdown` | shipped |
-| `teleop_task_dispatch` | planned |
 
 ---
 
@@ -134,12 +137,17 @@ Details and troubleshooting: **[docs/TAILSCALE_VIEWERS.md](docs/TAILSCALE_VIEWER
 ## Development
 
 ```powershell
-just lint
-just test
-just ci      # same gates as GitHub Actions (Windows)
+just lint            # ruff + tsc + biome
+just types           # pyright
+just test            # pytest (coverage gate >=50%)
+just gates-green     # lint + types + test
+just ci              # same gates as GitHub Actions (Windows)
 just serve
 just web
+just mcpb-pack       # build .mcpb bundle (fresh-stages src/ -> mcpb/src)
 just integration-test   # headless WS harness vs live stack (needs backend up)
+# Webapp e2e (Playwright, reuses running stack when healthy):
+Set-Location webapp; npx playwright test
 ```
 
 ---
@@ -147,4 +155,3 @@ just integration-test   # headless WS harness vs live stack (needs backend up)
 ## License
 
 MIT
-

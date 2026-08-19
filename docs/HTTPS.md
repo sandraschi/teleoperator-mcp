@@ -2,7 +2,7 @@
 
 WebXR requires a **secure context** (HTTPS or localhost). The Pico browser on your LAN cannot use `http://192.168.x.x:10900` for immersive VR. This guide covers Goliath -> Pico access.
 
-**Recommended:** Tailscale Serve (tailnet HTTPS, no cert management).  
+**Recommended:** Tailscale Serve (tailnet HTTPS, no cert management).
 **Fallback:** LAN self-signed cert (more Pico browser friction).
 
 Related: Milestone 1 in [TODO.md](TODO.md), ports in [PRD.md](PRD.md).

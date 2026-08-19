@@ -40,19 +40,26 @@ export function ToolsPage() {
 
   return (
     <>
-      <section className="page-card">
+      <section className="page-card" data-testid="tools-page">
         <h2>MCP tool inspector</h2>
         <p style={{ margin: "0 0 1rem", fontSize: "0.88rem", color: "var(--shell-muted)" }}>
-          Dry-run via REST mirrors where available. Configure and set_mode require MCP or WebXR session.
+          Dry-run via REST mirrors where available. Configure and set_mode require MCP or WebXR
+          session.
         </p>
-        {loading && <div className="skeleton" style={{ height: "3rem" }} />}
-        {!loading && tools.length === 0 && <p>No tools reported by /api/capabilities.</p>}
+        {loading && (
+          <div className="skeleton" data-testid="tools-loading" style={{ height: "3rem" }} />
+        )}
+        {!loading && tools.length === 0 && (
+          <p data-testid="tools-empty">No tools reported by /api/capabilities.</p>
+        )}
         {tools.map((name) => (
-          <div key={name} className="tool-row">
+          <div key={name} className="tool-row" data-testid={`tool-row-${name}`}>
             <div>
               <strong>{name}</strong>
               <div style={{ fontSize: "0.78rem", color: "var(--shell-muted)" }}>
-                {REST_ACTIONS[name] ? REST_ACTIONS[name].method + " " + REST_ACTIONS[name].path : "MCP only"}
+                {REST_ACTIONS[name]
+                  ? `${REST_ACTIONS[name].method} ${REST_ACTIONS[name].path}`
+                  : "MCP only"}
               </div>
             </div>
             <button
@@ -67,7 +74,7 @@ export function ToolsPage() {
         ))}
       </section>
       {result && (
-        <section className="page-card">
+        <section className="page-card" data-testid="tools-result">
           <h2>Result</h2>
           <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: "0.8rem" }}>{result}</pre>
         </section>

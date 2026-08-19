@@ -35,6 +35,10 @@ dev:
 lint:
     uv run ruff check .
     Set-Location webapp; npx tsc --noEmit
+    Set-Location webapp; npx biome check src/
+
+types:
+    uv run pyright src/
 
 fmt:
     uv run ruff format .
@@ -46,6 +50,8 @@ fix:
 test:
     uv run pytest tests/ -v
 
+gates-green: lint types test
+
 # --- Headless WS integration harness  proves pose pipeline against live stack ---
 integration-test:
     uv run python scripts/ws-integration-harness.py --frames 60 --look
@@ -54,6 +60,7 @@ ci:
     uv sync --all-extras
     uv run pytest tests/ -q
     Set-Location webapp; npm ci; npm run check
+    Set-Location webapp; npm run biome:ci
 
 # --- Tauri Native ---
 

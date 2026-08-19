@@ -189,4 +189,3 @@ Milestone 1 complete when:
 - [ ] HTTPS path documented with your actual Tailscale hostname
 
 Then proceed to Milestone 5 acceptance (latency notes) or fleet backlog in [TODO.md](TODO.md). Milestone 3 (arbiter) is software-complete; squeeze takeover sign-off is part of section 5 above.
-

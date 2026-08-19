@@ -79,7 +79,8 @@ export function LoggerPanel({ collapsed, onToggle }: LoggerPanelProps) {
           {entries.length === 0 && <div className="log-line level-INFO">No log entries yet.</div>}
           {entries.map((e) => (
             <div key={e.id} className={`log-line level-${e.level}`}>
-              <span style={{ opacity: 0.6 }}>{e.timestamp.slice(11, 19)}</span> [{e.kind}] {e.detail}
+              <span style={{ opacity: 0.6 }}>{e.timestamp.slice(11, 19)}</span> [{e.kind}]{" "}
+              {e.detail}
             </div>
           ))}
         </div>

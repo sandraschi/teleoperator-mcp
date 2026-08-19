@@ -1,11 +1,11 @@
 import {
+  type ReactNode,
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from "react";
 import type { Capabilities } from "./types";
 
@@ -41,10 +41,7 @@ export function CapabilitiesProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const value = useMemo(
-    () => ({ caps, loading, error, refresh }),
-    [caps, loading, error, refresh],
-  );
+  const value = useMemo(() => ({ caps, loading, error, refresh }), [caps, loading, error, refresh]);
 
   return <CapabilitiesContext.Provider value={value}>{children}</CapabilitiesContext.Provider>;
 }

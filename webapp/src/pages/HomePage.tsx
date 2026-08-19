@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { XrSession } from "../xr-session";
-import { useCapabilities } from "../lib/capabilities";
 import { API_BASE } from "../lib/api";
-import { useBackendStore } from "../store";
+import { useCapabilities } from "../lib/capabilities";
 import type { HealthResponse, RobotCatalogEntry } from "../lib/types";
+import { useBackendStore } from "../store";
+import { XrSession } from "../xr-session";
 
 const FALLBACK_ROBOTS: Record<string, RobotCatalogEntry> = {
   boomy: { status: "available", robot_id: "boomy", display_name: "Boomy (Yahboom)" },
@@ -50,7 +50,7 @@ export function HomePage() {
 
   const pollHealth = useCallback(async () => {
     try {
-      const res = await fetch(API_BASE + "/api/v1/health");
+      const res = await fetch(`${API_BASE}/api/v1/health`);
       const data = (await res.json()) as HealthResponse;
       setHealth(data);
       setOnline(true);
@@ -187,7 +187,9 @@ export function HomePage() {
 
       <section className="page-card">
         <h2>Capabilities</h2>
-        {capsLoading && <div className="skeleton" style={{ width: "60%", marginBottom: "0.5rem" }} />}
+        {capsLoading && (
+          <div className="skeleton" style={{ width: "60%", marginBottom: "0.5rem" }} />
+        )}
         {caps && (
           <>
             <div className="cap-badges" style={{ marginBottom: "0.75rem" }}>
@@ -198,7 +200,8 @@ export function HomePage() {
               ))}
             </div>
             <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--shell-muted)" }}>
-              {caps.tool_surface.atomic_count} atomic tools · transport {String(caps.runtime.transport)}
+              {caps.tool_surface.atomic_count} atomic tools · transport{" "}
+              {String(caps.runtime.transport)}
             </p>
           </>
         )}

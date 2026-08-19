@@ -5,6 +5,7 @@ export function SettingsPage() {
   const providers = useLlmStore((s) => s.providers);
   const selectedProvider = useLlmStore((s) => s.selectedProvider);
   const selectedModel = useLlmStore((s) => s.selectedModel);
+  const gpu = useLlmStore((s) => s.gpu);
   const discover = useLlmStore((s) => s.discover);
   const selectProvider = useLlmStore((s) => s.selectProvider);
   const selectModel = useLlmStore((s) => s.selectModel);
@@ -14,13 +15,34 @@ export function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const ollamaUp = providers.find((p) => p.name === "ollama")?.status === "online";
+  const anyUp = providers.some((p) => p.status === "online");
+
   return (
     <>
-      <section className="page-card">
+      <section className="page-card" data-testid="settings-page">
         <h2>Local LLM — Glom On</h2>
         <p style={{ margin: "0 0 1rem", fontSize: "0.88rem", color: "var(--shell-muted)" }}>
-          Auto-discovery of local inference engines. Teleop does not require LLM; reserved for future agent assist.
+          Auto-discovery of local inference engines. Teleop does not require LLM; reserved for
+          future agent assist.
         </p>
+        {gpu && (
+          <div className="tool-row" data-testid="gpu-status">
+            <div>
+              <strong>{gpu.name}</strong>
+              <div style={{ fontSize: "0.78rem", color: "var(--shell-muted)" }}>
+                {gpu.vram_gb} GB VRAM detected
+              </div>
+            </div>
+            <span className="status-pill ok">GPU</span>
+          </div>
+        )}
+        {gpu && !anyUp && (
+          <p className="onboarding-cue" data-testid="gpu-opportunity">
+            NVIDIA GPU detected but no local LLM is running. Start <code>ollama serve</code> or LM
+            Studio to enable local chat.
+          </p>
+        )}
         {providers.map((p) => (
           <div key={p.name} className="tool-row">
             <div>
@@ -30,7 +52,9 @@ export function SettingsPage() {
                 {p.models?.length ? ` · ${p.models.join(", ")}` : ""}
               </div>
             </div>
-            <span className={`status-pill ${p.status === "online" ? "ok" : "warn"}`}>{p.status}</span>
+            <span className={`status-pill ${p.status === "online" ? "ok" : "warn"}`}>
+              {p.status}
+            </span>
           </div>
         ))}
         <div className="field" style={{ marginTop: "1rem" }}>

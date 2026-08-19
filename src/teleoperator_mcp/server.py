@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -17,6 +18,7 @@ from fastapi import FastAPI, Query, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastmcp import FastMCP
+from fastmcp.server.providers.skills import SkillsDirectoryProvider
 from pydantic import BaseModel, Field
 
 from .activity_log import (
@@ -59,9 +61,40 @@ logger = logging.getLogger("teleoperator-mcp")
 start_time = time.time()
 mcp = FastMCP("Teleoperator MCP")
 
+_skills_dir = Path(__file__).resolve().parent / "skills"
+if _skills_dir.is_dir():
+    mcp.add_provider(SkillsDirectoryProvider(roots=[_skills_dir]))
+
 _READ_ONLY = {"readonly": True}
 _MUTATING = {}
 _DESTRUCTIVE = {}
+
+
+def _error_response(message: str, **extra) -> dict:
+    """Build a {success, message} failure dict and log the exception in flight."""
+    logger.exception(message)
+    return {"success": False, "message": message, **extra}
+
+
+SKILLS: list[dict] = [
+    {
+        "name": "teleop-supervision",
+        "description": (
+            "Supervise a WebXR teleoperation session: check status, video return, "
+            "authority, and react to hazards."
+        ),
+    },
+    {
+        "name": "robot-catalog",
+        "description": (
+            "List the available robot adapters (boomy, bumi, vboomy) and their capabilities."
+        ),
+    },
+    {
+        "name": "livekit-video-return",
+        "description": ("Verify and control LiveKit video return for the teleop session."),
+    },
+]
 
 
 @mcp.resource("teleop://status")
@@ -101,7 +134,25 @@ def teleop_help(topic: str = "overview") -> str:
     return guides.get(topic.lower(), guides["overview"])
 
 
-@mcp.tool(annotations=_READ_ONLY)
+TELEOP_STATUS_OUTPUT_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "success": {"type": "boolean"},
+        "message": {"type": "string"},
+        "active": {"type": "boolean"},
+        "robot": {"type": "string"},
+        "frames_in": {"type": "integer"},
+        "uptime_s": {"type": "number"},
+        "watchdog_latched": {"type": "boolean"},
+        "estop_count": {"type": "integer"},
+        "any_auto": {"type": "boolean"},
+        "estop_latched": {"type": "boolean"},
+        "yahboom_api": {"type": "string"},
+    },
+}
+
+
+@mcp.tool(annotations=_READ_ONLY, output_schema=TELEOP_STATUS_OUTPUT_SCHEMA)
 async def teleop_status() -> dict:
     """Active WebXR teleop session status (connection, frame count, robot target).
 
@@ -582,6 +633,60 @@ async def api_recording_export(body: RecordingExportBody | None = None) -> dict:
     return export_summary(result)
 
 
+@app.get("/api/skills")
+async def api_skills() -> list[dict]:
+    """Available supervisor skills for the chat page (skill-first composition)."""
+    return SKILLS
+
+
+@app.get("/api/fleet/apps")
+async def fleet_apps() -> dict:
+    """Fleet Apps Hub catalog — local MCP webapps on Goliath.
+
+    The AppsPage fetches this on mount and re-legates unknown entries to an
+    Experimental section. Entries are the fleet registry snapshot; unknown
+    apps discovered here are classified by the client.
+    """
+    apps = [
+        {
+            "name": "teleoperator-mcp",
+            "port": 10900,
+            "desc": "WebXR teleop gateway (this app)",
+            "url": "/",
+            "known": True,
+        },
+        {
+            "name": "yahboom-mcp",
+            "port": 10892,
+            "desc": "Boomy ROS 2 robot control",
+            "url": "http://localhost:10892",
+            "known": True,
+        },
+        {
+            "name": "devices-mcp",
+            "port": 10870,
+            "desc": "Fleet device inventory",
+            "url": "http://localhost:10870",
+            "known": True,
+        },
+        {
+            "name": "bookmarks-mcp",
+            "port": 10880,
+            "desc": "Browser bookmarks + fleet docs RAG",
+            "url": "http://localhost:10880",
+            "known": True,
+        },
+        {
+            "name": "mcp-central-docs",
+            "port": None,
+            "desc": "Pico revive pack, WEBXR, teleop runbooks",
+            "url": "https://github.com/sandraschi/mcp-central-docs/tree/main/pico",
+            "known": True,
+        },
+    ]
+    return {"apps": apps}
+
+
 @app.get("/api/llm/providers")
 async def llm_providers() -> dict:
     import httpx
@@ -595,8 +700,34 @@ async def llm_providers() -> dict:
                 if name:
                     models.append(name)
     except Exception:
-        pass
-    return {"providers": [{"name": "ollama", "models": models}]}
+        logger.warning("Ollama probe failed - local LLM unavailable", exc_info=True)
+    return {
+        "providers": [{"name": "ollama", "models": models}],
+        "gpu": _gpu_detect(),
+    }
+
+
+def _gpu_detect() -> dict | None:
+    """Detect an NVIDIA GPU via nvidia-smi (used for the local-LLM opportunity prompt)."""
+    import shutil
+
+    exe = shutil.which("nvidia-smi")
+    if not exe:
+        return None
+    try:
+        proc = subprocess.run(
+            [exe, "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if proc.returncode != 0:
+            return None
+        name, _, vram = proc.stdout.strip().partition(",")
+        return {"name": name.strip(), "vram_gb": int(vram.strip()) if vram.strip().isdigit() else 0}
+    except Exception:
+        logger.debug("nvidia-smi probe failed", exc_info=True)
+        return None
 
 
 @app.post("/api/llm/chat")
@@ -688,12 +819,12 @@ async def capabilities() -> dict:
         "teleop_livekit_status",
         "teleop_livekit_publisher_start",
         "teleop_livekit_publisher_stop",
-        "teleop_export_recording",
+        "show_teleop_status_card",
         "teleop_shutdown",
     ]
     return {
         "status": "ok",
-        "server": {"name": "teleoperator-mcp", "version": "0.1.0", "fastmcp": "3.2+"},
+        "server": {"name": "teleoperator-mcp", "version": "0.1.0", "fastmcp": "3.4+"},
         "tool_surface": {
             "total": len(tools),
             "portmanteau_count": 0,
@@ -704,18 +835,18 @@ async def capabilities() -> dict:
         "features": {
             "sampling": False,
             "agentic_workflows": False,
-            "prompts": False,
-            "resources": False,
-            "skills": False,
+            "prompts": True,
+            "resources": True,
+            "skills": True,
             "webxr": True,
             "websocket_teleop": True,
             "livekit_video": settings.livekit_enabled,
         },
         "inventory": {
             "workflow_tools": [],
-            "prompt_names": [],
-            "resource_uris": [],
-            "skill_uris": [],
+            "prompt_names": ["teleop_help"],
+            "resource_uris": ["teleop://status"],
+            "skill_uris": ["teleop-supervision", "robot-catalog", "livekit-video-return"],
         },
         "runtime": {
             "transport": "dual",

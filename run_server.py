@@ -1,4 +1,5 @@
 """PyInstaller entry point — dual transport (MCP_PORT → HTTP, fallback → stdio)."""
+
 import os
 import sys
 

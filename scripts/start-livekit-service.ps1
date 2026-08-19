@@ -12,4 +12,3 @@ try {
 } catch {
     "ERROR: $($_.Exception.Message)" | Out-File $log -Append
 }
-

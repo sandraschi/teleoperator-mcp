@@ -186,4 +186,3 @@ pub fn spawn_backend(app: AppHandle, state: &BackendProcess) -> Result<String, S
 
     Ok(format!("Backend starting on port {BACKEND_PORT}"))
 }
-

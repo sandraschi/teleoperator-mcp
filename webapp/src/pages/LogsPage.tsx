@@ -32,8 +32,8 @@ export function LogsPage() {
       if (liveTail && afterId) params.set("after_id", afterId);
 
       const [logsRes, statsRes] = await Promise.all([
-        fetch(API_BASE + `/api/logs?${params}`),
-        fetch(API_BASE + "/api/logs/stats"),
+        fetch(`${API_BASE}/api/logs?${params}`),
+        fetch(`${API_BASE}/api/logs/stats`),
       ]);
       const logs = (await logsRes.json()) as LogsResponse;
       setData(logs);
@@ -68,7 +68,7 @@ export function LogsPage() {
 
   const clearLogs = async () => {
     if (!window.confirm("Clear all log entries?")) return;
-    await fetch(API_BASE + "/api/logs", { method: "DELETE" });
+    await fetch(`${API_BASE}/api/logs`, { method: "DELETE" });
     setAfterId(null);
     void load();
   };
@@ -79,7 +79,7 @@ export function LogsPage() {
 
   return (
     <>
-      <section className="page-card">
+      <section className="page-card" data-testid="logs-page">
         <h2>Ring buffer stats</h2>
         {stats ? (
           <div className="page-grid">
@@ -105,17 +105,35 @@ export function LogsPage() {
         <div className="filters-row">
           <div className="field">
             <label htmlFor="log-level">Min level</label>
-            <select id="log-level" value={level} onChange={(e) => { setLevel(e.target.value); setOffset(0); }}>
+            <select
+              id="log-level"
+              value={level}
+              onChange={(e) => {
+                setLevel(e.target.value);
+                setOffset(0);
+              }}
+            >
               {LEVELS.map((l) => (
-                <option key={l || "all"} value={l}>{l || "All"}</option>
+                <option key={l || "all"} value={l}>
+                  {l || "All"}
+                </option>
               ))}
             </select>
           </div>
           <div className="field">
             <label htmlFor="log-kind">Kind</label>
-            <select id="log-kind" value={kind} onChange={(e) => { setKind(e.target.value); setOffset(0); }}>
+            <select
+              id="log-kind"
+              value={kind}
+              onChange={(e) => {
+                setKind(e.target.value);
+                setOffset(0);
+              }}
+            >
               {KINDS.map((k) => (
-                <option key={k || "all"} value={k}>{k || "All"}</option>
+                <option key={k || "all"} value={k}>
+                  {k || "All"}
+                </option>
               ))}
             </select>
           </div>
@@ -124,30 +142,57 @@ export function LogsPage() {
             <input
               id="log-search"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setOffset(0);
+              }}
               placeholder="Filter detail or meta…"
             />
           </div>
           <div className="field">
             <label htmlFor="log-sort">Sort</label>
-            <select id="log-sort" value={sort} onChange={(e) => setSort(e.target.value as "asc" | "desc")}>
+            <select
+              id="log-sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as "asc" | "desc")}
+            >
               <option value="desc">Newest first</option>
               <option value="asc">Oldest first</option>
             </select>
           </div>
           <div className="field">
             <label htmlFor="log-limit">Page size</label>
-            <select id="log-limit" value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setOffset(0); }}>
+            <select
+              id="log-limit"
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setOffset(0);
+              }}
+            >
               {[25, 50, 100, 200].map((n) => (
-                <option key={n} value={n}>{n}</option>
+                <option key={n} value={n}>
+                  {n}
+                </option>
               ))}
             </select>
           </div>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.85rem" }}>
-            <input type="checkbox" checked={liveTail} onChange={(e) => setLiveTail(e.target.checked)} />
+          <label
+            style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.85rem" }}
+          >
+            <input
+              type="checkbox"
+              checked={liveTail}
+              onChange={(e) => setLiveTail(e.target.checked)}
+            />
             Live tail
           </label>
-          <button type="button" className="btn secondary" onClick={() => void load()} disabled={busy}>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => void load()}
+            disabled={busy}
+          >
             Refresh
           </button>
           <button type="button" className="btn secondary" onClick={() => exportLogs("json")}>
@@ -162,7 +207,7 @@ export function LogsPage() {
         </div>
 
         <div className="table-wrap">
-          <table className="data-table">
+          <table className="data-table" data-testid="logs-table">
             <thead>
               <tr>
                 <th>Time</th>

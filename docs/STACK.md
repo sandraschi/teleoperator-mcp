@@ -117,4 +117,3 @@ SKU traps (do not misbuy): R1 Air ($4,900) / R1 standard ($5,900) are **closed**
 - pytest + pytest-asyncio (`asyncio_mode = auto`); current tests cover the mapper only, WS/watchdog untested
 - TypeScript `tsc --noEmit` for the webapp
 - Playwright (headless) for webapp e2e - per fleet standard, not yet present
-

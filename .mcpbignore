@@ -18,8 +18,19 @@ llms-full.txt
 dist/
 build/
 *.mcpb
+*.pyc
+*.bak
+*.bak.*
+*.bak-*
 
-# Non-MCP components (webapp, native, scripts)
+# Non-MCP components (webapp, native, scripts, data)
 native/
 web_sota/
+webapp/
 scripts/
+data/
+
+# Runtime scratch
+logs/
+tmp/
+*.log

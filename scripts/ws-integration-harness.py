@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import math
 import sys
 import time
 from pathlib import Path
@@ -50,7 +49,14 @@ def make_frame(seq: int, robot: str, *, trigger: float = 0.0, look: bool = False
         "buttons": {"trigger": trigger, "squeeze": 0.0},
     }
     left = {"connected": False, "axes": [], "buttons": {}}
-    payload = {"type": "pose", "seq": seq, "robot": robot, "head": head, "right": right, "left": left}
+    payload = {
+        "type": "pose",
+        "seq": seq,
+        "robot": robot,
+        "head": head,
+        "right": right,
+        "left": left,
+    }
     return json.dumps(payload)
 
 
@@ -74,7 +80,11 @@ async def main() -> None:
     # Pre: yahboom-mcp health (robot may be offline — that's OK, bridge must answer)
     try:
         y = httpx.get(f"{YAHBOOM}/api/v1/health", timeout=5).json()
-        check("yahboom-mcp reachable", True, f"robot_connection.ros={y.get('robot_connection', {}).get('ros')}")
+        check(
+            "yahboom-mcp reachable",
+            True,
+            f"robot_connection.ros={y.get('robot_connection', {}).get('ros')}",
+        )
     except Exception as e:
         check("yahboom-mcp reachable", False, str(e))
 
@@ -90,7 +100,7 @@ async def main() -> None:
             await ws.send(make_frame(i, args.robot, trigger=0.0, look=args.look))
             try:
                 ack = json.loads(await asyncio.wait_for(ws.recv(), timeout=2.0))
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 errors.append(f"ack timeout at seq {i}")
                 break
             if ack.get("ok"):
@@ -113,10 +123,18 @@ async def main() -> None:
     teleop = s.get("teleop", {})
     frames_in = teleop.get("frames_in", 0)
     check("frames_in incremented", frames_in >= args.frames - 2, f"frames_in={frames_in}")
-    check("estop_count incremented", teleop.get("estop_count", 0) >= 1, f"estop_count={teleop.get('estop_count')}")
+    check(
+        "estop_count incremented",
+        teleop.get("estop_count", 0) >= 1,
+        f"estop_count={teleop.get('estop_count')}",
+    )
     check("authority resolved", teleop.get("authority", {}).get("estop_latched", False) is not None)
     rec = teleop.get("recording", {})
-    check("recording active flag sane", rec.get("recording_enabled", False) is True, str(rec.get("recording_enabled")))
+    check(
+        "recording active flag sane",
+        rec.get("recording_enabled", False) is True,
+        str(rec.get("recording_enabled")),
+    )
 
     # Recording truth is on disk: latest episode meta length must match streamed frames.
     # (live frame_count resets to 0 when the session ends)
@@ -130,7 +148,9 @@ async def main() -> None:
                     last_len = json.loads(line).get("length", 0)
                 except json.JSONDecodeError:
                     pass
-    check("recording captured frames", last_len >= args.frames - 2, f"last_episode_length={last_len}")
+    check(
+        "recording captured frames", last_len >= args.frames - 2, f"last_episode_length={last_len}"
+    )
 
     # Post: session ended → watchdog/estop path check
     w = teleop.get("watchdog_latched", None)

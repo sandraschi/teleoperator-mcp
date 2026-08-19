@@ -18,7 +18,7 @@
   },
   "runtime": {
     "python": ">=3.12",
-    "fastmcp": "3.4.0",
+    "fastmcp": "3.4.4",
     "web_port": 10900,
     "backend_port": 10901
   },

@@ -123,4 +123,3 @@ The manipulation handoff. No date until the platform is on the bench.
 ## Sequencing note
 
 Milestones 0 -> 5 are mostly hardware-light and can run now in order; 2 and 3 are the real architectural work and should not start until Milestone 1 proves the data plane on Boomy. Milestone 6 waits on hardware. Rough cumulative for 0-4 (the software spine, no waiting on parts): ~5-7 working days.
-

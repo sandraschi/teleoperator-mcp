@@ -12,6 +12,7 @@ interface LlmState {
   providers: LlmProviderProbe[];
   selectedProvider: string;
   selectedModel: string;
+  gpu: { name: string; vram_gb: number } | null;
   discover: () => Promise<void>;
   selectProvider: (name: string) => void;
   selectModel: (model: string) => void;
@@ -55,8 +56,15 @@ export const useLlmStore = create<LlmState>((set, get) => ({
   })),
   selectedProvider: readStorage("llm_provider", "ollama"),
   selectedModel: readStorage("llm_model", ""),
+  gpu: null,
 
   discover: async () => {
+    const serverProbe = fetch("http://127.0.0.1:10901/api/llm/providers", {
+      signal: AbortSignal.timeout(2500),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+
     const results = await Promise.all(
       PROVIDER_DEFS.map(async (p) => {
         try {
@@ -72,6 +80,13 @@ export const useLlmStore = create<LlmState>((set, get) => ({
       }),
     );
     set({ providers: results });
+
+    const server = await serverProbe;
+    if (server?.gpu) {
+      set({
+        gpu: { name: server.gpu.name, vram_gb: server.gpu.vram_gb ?? 0 },
+      });
+    }
 
     const { selectedProvider, selectedModel } = get();
     const active = results.find((p) => p.name === selectedProvider);

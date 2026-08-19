@@ -1,4 +1,28 @@
 
+
+## [Unreleased] — 2026-08-19 (assfix)
+
+### Added
+- `GET /api/skills` endpoint + `SKILLS` catalog (chat skill-first loading, was 404)
+- `SkillsDirectoryProvider` with `src/teleoperator_mcp/skills/teleop-supervision/SKILL.md`
+- GPU detection in `GET /api/llm/providers` (nvidia-smi) + Settings page GPU status + opportunity prompt
+- `output_schema` on `teleop_status`; `_error_response()` helper; skills/prompts/resources now flagged in `/api/capabilities`
+- Webapp: `useTauriBackendListener` (backend-status event + HTTP poll fallback), Tauri zoom levels 0.5-3.0 + Ctrl+0 reset, 4th personality + Custom, 6 example prompts, data-testid on Tools/Logs/Apps/Help pages, GPU status testid, font/contrast fixes
+- Biome: `webapp/biome.json`, `lint`/`lint:fix`/`biome:ci` scripts, CI step
+- Playwright: `webapp/playwright.config.ts`, `e2e/navigation.spec.ts`, `e2e-start-all.ps1` (idempotent reuse), `e2e` script
+- Coverage gate: pytest-cov with `--cov-fail-under=50`
+- `docs/CONFIGURATION.md`, `docs/DEVELOPMENT.md`, `docs/TOOLS.md`, `docs/TROUBLESHOOTING.md`
+- `just types`, `just gates-green`
+- MCPB 3-4-100 prompts rewritten (system 3.2k / user 4.1k words, 111 examples); `.mcpbignore` + `mcpb-pack.ps1` fresh-stage (wipe+recopy src -> mcpb/src)
+- CUA NSIS config: `nav_routes` added, `feature_smoke_path` corrected to `/api/v1/diagnostics`
+- Tests: `tests/test_server_routes.py` (42 total, 61% coverage)
+
+### Fixed
+- `.gitignore`: `mcpb/src/` (tracked stale bundle untracked), `*.bak.*`, `*.bak-*`, `*.mcpb`
+- `teleop_export_recording` phantom entry removed from `/api/capabilities` tool surface (12 real tools)
+- `llm_providers` swallowed `except Exception: pass` -> `logger.warning(exc_info=True)`
+- Pre-commit hook installed (`uv run pre-commit install`)
+
 ## [Unreleased] — 2026-08-03 (session 2)
 
 ### Added
@@ -96,5 +120,3 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.1.0] - 2026-06-02
 
 - Initial alpha: WebXR pose gateway, Boomy adapter, arbiter/M3, LeRobot JSONL, LiveKit publisher (M5).
-
-

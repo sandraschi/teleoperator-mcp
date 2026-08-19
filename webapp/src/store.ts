@@ -22,7 +22,7 @@ export const useBackendStore = create<BackendState>((set) => ({
   setUptime: (uptime: number) => set({ uptime }),
   checkHealth: async () => {
     try {
-      const res = await fetch(API_BASE + "/api/v1/health");
+      const res = await fetch(`${API_BASE}/api/v1/health`);
       if (!res.ok) {
         set({ online: false, lastCheck: Date.now() });
         return;

@@ -17,6 +17,17 @@
     }
   },
   "tools": [
-    { "name": "teleop_status", "description": "teleop_status" }
+    { "name": "teleop_status", "description": "Active WebXR teleop session status" },
+    { "name": "teleop_configure", "description": "Adjust teleop mapping gains and robot API URL" },
+    { "name": "teleop_estop", "description": "Hard stop: zero drive on all actuator groups" },
+    { "name": "teleop_set_mode", "description": "Set actuator group authority DIRECT/AUTO" },
+    { "name": "teleop_takeover", "description": "Human reclaims authority, clears estop latch" },
+    { "name": "teleop_set_gaze", "description": "Move Boomy camera to absolute pan/tilt" },
+    { "name": "teleop_gaze_center", "description": "Center camera servos" },
+    { "name": "teleop_livekit_status", "description": "LiveKit video return status" },
+    { "name": "teleop_livekit_publisher_start", "description": "Start MJPEG to LiveKit publisher" },
+    { "name": "teleop_livekit_publisher_stop", "description": "Stop LiveKit camera publisher" },
+    { "name": "show_teleop_status_card", "description": "Prefab status card for robot + connection health" },
+    { "name": "teleop_shutdown", "description": "Gracefully shut down the server" }
   ]
 }

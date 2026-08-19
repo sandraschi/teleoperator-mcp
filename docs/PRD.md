@@ -182,4 +182,3 @@ Register in `mcp-central-docs/operations/WEBAPP_PORTS.md` (done: 10900/10901).
 - [ ] Confirm yahboom `camera_set_pos` REST path matches deployed API
 - [ ] LiveKit publisher sidecar (v1.5)
 - [ ] Pico Browser WebXR feature matrix test on hardware
-

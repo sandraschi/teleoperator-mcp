@@ -93,4 +93,3 @@ Plain-language definitions for terms used across teleoperator-mcp docs. Not a tu
 | VLA | Vision-language-action model |
 | DOF | Degrees of freedom (joint axes) |
 | E-stop | Emergency stop (zero velocity / halt) |
-

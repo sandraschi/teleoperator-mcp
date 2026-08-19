@@ -1,6 +1,6 @@
 # Teleoperator MCP — LLM full manifest
 
-Version **0.1.0** (see `pyproject.toml`). Stack: **Python 3.12+**, **FastMCP >=3.2**, **FastAPI**, **WebSocket**, **LiveKit**, **WebXR**.
+Version **0.1.0** (see `pyproject.toml`). Stack: **Python 3.12+**, **FastMCP >=3.4.4**, **FastAPI**, **WebSocket**, **LiveKit**, **WebXR**.
 
 Ports: Frontend **10900** (Vite), Backend **10901** (FastAPI + MCP HTTP + WebSocket).
 
@@ -58,6 +58,16 @@ Gracefully shut down the teleoperator server: stops LiveKit publisher, disconnec
 
 ---
 
+## Skills, prompts, resources
+
+| Kind | Name | Description |
+|------|------|-------------|
+| Skill | teleop-supervision | Session supervision workflow (status, video, authority, hazard response) |
+| Prompt | teleop_help | Supervisor guidance (topics: overview, estop, livekit) |
+| Resource | teleop://status | Pollable text status block |
+
+---
+
 ## REST API endpoints (FastAPI)
 
 | Method | Path | Description |
@@ -70,6 +80,7 @@ Gracefully shut down the teleoperator server: stops LiveKit publisher, disconnec
 | GET | /api/logs/export | Export logs as JSON or CSV |
 | DELETE | /api/logs | Clear ring-buffer log |
 | GET | /api/v1/robots | Robot adapter catalog |
+| GET | /api/skills | Supervisor skill catalog (chat skill-first loading) |
 | GET | /api/v1/livekit/config | Public LiveKit connection info |
 | POST | /api/v1/livekit/token | Issue subscriber JWT |
 | GET | /api/v1/livekit/status | LiveKit publisher status |
@@ -82,7 +93,7 @@ Gracefully shut down the teleoperator server: stops LiveKit publisher, disconnec
 | POST | /api/v1/teleop/set_mode | REST mirror of teleop_set_mode |
 | POST | /api/v1/recording/export | Export JSONL to LeRobot parquet |
 | POST | /api/shutdown | Graceful shutdown (confirm=true) |
-| GET | /api/llm/providers | Local LLM provider discovery (Ollama) |
+| GET | /api/llm/providers | Local LLM provider discovery (Ollama) + GPU detection (nvidia-smi) |
 | POST | /api/llm/chat | Local LLM chat completion |
 | WS | /ws/teleop | WebSocket teleop pose stream (?robot= param) |
 | | /mcp | FastMCP HTTP transport (streamable) |
@@ -221,4 +232,3 @@ cd webapp && npm run dev
 - **resonite-mcp**: Virtual twin via OSC (port 10979)
 - **LiveKit SFU**: Windows service `LiveKitSFU` (native livekit-server 1.7.0, teleconference-mcp/livekit.yaml, port 15580)
 - **Integration test**: `just integration-test` — headless WS harness proving the pose pipeline against the live stack
-

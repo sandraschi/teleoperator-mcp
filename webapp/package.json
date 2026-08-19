@@ -7,11 +7,15 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "biome:ci": "biome ci src/",
+    "e2e": "playwright test"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.11.1",
     "@tailwindcss/vite": "^4.3.1",
+    "@tauri-apps/api": "^2.11.1",
     "framer-motion": "^12.42.0",
     "livekit-client": "^2.9.0",
     "lucide-react": "^1.21.0",
@@ -23,6 +27,8 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@playwright/test": "^1.62.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.170.0",

@@ -57,6 +57,10 @@ jobs:
         working-directory: webapp
         run: npm run check
 
+      - name: Frontend lint (biome)
+        working-directory: webapp
+        run: npm run biome:ci
+
       - name: Frontend build
         working-directory: webapp
         run: npm run build

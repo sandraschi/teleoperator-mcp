@@ -287,4 +287,3 @@ Session JSONL ([LEROBOT.md](LEROBOT.md)) logs pose and commands today, **not** v
 - teleconference-mcp: `docs/LIVEKIT.md`, port **15580**
 - Fleet: `mcp-central-docs/integrations/livekit/`
 - Architecture context: [PRD.md §6](PRD.md), [STACK.md §3](STACK.md)
-

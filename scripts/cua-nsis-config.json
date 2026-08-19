@@ -6,9 +6,17 @@
   "backend_port": 10901,
   "health_path": "/health",
   "diagnostics_path": "/api/v1/diagnostics",
-  "feature_smoke_path": "/api/v1/status",
+  "feature_smoke_path": "/api/v1/diagnostics",
   "window_title_re": "Teleoperator MCP",
   "nsis_glob": "native/target/release/bundle/nsis/Teleoperator MCP_*_x64-setup.exe",
   "bridge_ok_text": "API reachable",
-  "uninstall_registry_filter": "*Teleoperator*"
+  "uninstall_registry_filter": "*Teleoperator*",
+  "nav_routes": [
+    ["Home", "Home"],
+    ["MCP Tools", "MCP Tools"],
+    ["Event Logs", "Event Logs"],
+    ["Fleet Apps", "Fleet Apps"],
+    ["Settings", "Settings"],
+    ["Help", "Help"]
+  ]
 }

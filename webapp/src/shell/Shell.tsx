@@ -1,8 +1,9 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useTauriBackendListener } from "../hooks/useTauriBackendListener";
+import { useZoom } from "../hooks/useZoom";
 import { useCapabilities } from "../lib/capabilities";
 import { LoggerPanel } from "./LoggerPanel";
-import { useState } from "react";
-import { useZoom } from "../hooks/useZoom";
 
 const NAV = [
   { to: "/", label: "Home", end: true },
@@ -23,10 +24,35 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 export function Shell() {
-  useZoom();
+  const { zoomLevel } = useZoom();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { caps, loading, error } = useCapabilities();
+  const { caps, loading, error, refresh } = useCapabilities();
   const [loggerCollapsed, setLoggerCollapsed] = useState(false);
+
+  const handleBackendReady = useCallback(() => {
+    void refresh();
+  }, [refresh]);
+  const handleBackendError = useCallback((message: string) => {
+    console.warn(message);
+  }, []);
+
+  useTauriBackendListener({ onReady: handleBackendReady, onError: handleBackendError });
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.ctrlKey) return;
+      if (e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        setLoggerCollapsed((v) => !v);
+      } else if (e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        navigate("/help");
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [navigate]);
 
   const title = PAGE_TITLES[pathname] ?? "Teleoperator";
 
@@ -55,15 +81,21 @@ export function Shell() {
         <h2 className="iron-topbar__title">{title}</h2>
         <span className="iron-topbar__crumb">teleoperator-mcp</span>
         <div className="iron-topbar__status">
-          <span
-            data-testid="backend-dot"
-            className={`status-pill ${error ? "warn" : "ok"}`}
-          >
+          <span data-testid="backend-dot" className={`status-pill ${error ? "warn" : "ok"}`}>
             MCP {loading ? "…" : error ? "offline" : "ok"}
           </span>
           {caps && (
-            <span className="status-pill ok" data-testid="kpi-server">{caps.tool_surface.total} tools</span>
+            <span className="status-pill ok" data-testid="kpi-server">
+              {caps.tool_surface.total} tools
+            </span>
           )}
+          <span
+            className="status-pill"
+            data-testid="zoom-indicator"
+            title="Ctrl+Scroll zoom, Ctrl+0 reset"
+          >
+            {Math.round(zoomLevel * 100)}%
+          </span>
         </div>
       </header>
 
@@ -71,10 +103,7 @@ export function Shell() {
         <Outlet />
       </main>
 
-      <LoggerPanel
-        collapsed={loggerCollapsed}
-        onToggle={() => setLoggerCollapsed((v) => !v)}
-      />
+      <LoggerPanel collapsed={loggerCollapsed} onToggle={() => setLoggerCollapsed((v) => !v)} />
     </div>
   );
 }
