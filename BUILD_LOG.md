@@ -13,7 +13,7 @@
 - `.mcpbignore` completed (webapp/, data/, *.bak*); `mcpb-pack.ps1` now fresh-stages `src/<pkg>` -> `mcpb/src/<pkg>` before pack.
 - Webapp docs/ stack created: `CONFIGURATION.md`, `DEVELOPMENT.md`, `TOOLS.md`, `TROUBLESHOOTING.md`.
 - Biome wired: `webapp/biome.json`, `lint`/`biome:ci` scripts, CI step — all green.
-- CI `ci.yml` (previously **zero runs**) — will verify post-push.
+- CI `ci.yml` had **zero runs** because Actions was **disabled at repo level** on a public repo. Re-enabled via `gh api -X PUT /actions/permissions {"enabled": true}`; workflow_dispatch run **PASSED** (ruff/format/pyright/pytest/tsc/biome/build, 1m46s). Ruff `per-file-ignores` added for `scripts/*.py`/`run_server.py` so the pre-commit T201 gate passes repo-wide.
 - Webapp docs and README/llms-full synced.
 
 ### MEDIUM fixes
