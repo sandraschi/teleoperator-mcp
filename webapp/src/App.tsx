@@ -2,10 +2,12 @@ import { HashRouter, Route, Routes } from "react-router-dom";
 import FloatingChat from "./components/FloatingChat";
 import { CapabilitiesProvider } from "./lib/capabilities";
 import { AppsPage } from "./pages/AppsPage";
+import { EpisodesPage } from "./pages/EpisodesPage";
 import { HelpPage } from "./pages/HelpPage";
 import { HomePage } from "./pages/HomePage";
 import { InboxPage } from "./pages/InboxPage";
 import { LogsPage } from "./pages/LogsPage";
+import { OpsPage } from "./pages/OpsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SkillsPage } from "./pages/SkillsPage";
 import { ToolsPage } from "./pages/ToolsPage";
@@ -21,6 +23,8 @@ export default function App() {
             <Route path="tools" element={<ToolsPage />} />
             <Route path="inbox" element={<InboxPage />} />
             <Route path="skills" element={<SkillsPage />} />
+            <Route path="ops" element={<OpsPage />} />
+            <Route path="episodes" element={<EpisodesPage />} />
             <Route path="logs" element={<LogsPage />} />
             <Route path="apps" element={<AppsPage />} />
             <Route path="settings" element={<SettingsPage />} />

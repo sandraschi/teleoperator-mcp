@@ -48,9 +48,9 @@ export class XrSession {
   private squeezeHeld = false;
   private robotId: string;
 
-  constructor(canvas: HTMLCanvasElement, robot: string) {
+  constructor(canvas: HTMLCanvasElement, robot: string, claimToken = "") {
     this.robotId = robot;
-    this.stream = new PoseStream(robot);
+    this.stream = new PoseStream(robot, claimToken);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.xr.enabled = true;

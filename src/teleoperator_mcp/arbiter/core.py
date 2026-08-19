@@ -10,6 +10,7 @@ import httpx
 from ..adapters.base import RobotAdapter
 from ..producers.human_pose import HumanPoseProducer
 from ..producers.nav_stub import NavStubProducer
+from ..producers.waypoint import WaypointProducer
 from ..types import (
     BaseCommand,
     GazeCommand,
@@ -22,6 +23,8 @@ logger = logging.getLogger("teleoperator_mcp.arbiter")
 
 HUMAN_ID = "human_pose"
 NAV_STUB_ID = "nav_stub"
+NAV_WAYPOINT_ID = "nav_waypoint"
+VLA_ID = "vla"
 
 
 @dataclass
@@ -30,16 +33,32 @@ class ResolvedCommand:
     sources: dict[str, str]
 
 
+def _blend(base_h: BaseCommand | None, base_a: BaseCommand | None, w: float) -> BaseCommand | None:
+    """Confidence-weighted blend of human and auto base commands (SHARED mode)."""
+    if base_h is None:
+        return base_a
+    if base_a is None:
+        return base_h
+    w = max(0.0, min(1.0, w))
+    return BaseCommand(
+        linear=round((1 - w) * base_h.linear + w * base_a.linear, 4),
+        angular=round((1 - w) * base_h.angular + w * base_a.angular, 4),
+        linear_y=round((1 - w) * base_h.linear_y + w * base_a.linear_y, 4),
+    )
+
+
 class AuthorityArbiter:
     def __init__(
         self,
         adapter: RobotAdapter,
         human: HumanPoseProducer | None = None,
         nav_stub: NavStubProducer | None = None,
+        waypoint: WaypointProducer | None = None,
     ) -> None:
         self.adapter = adapter
         self.human = human or HumanPoseProducer()
         self.nav_stub = nav_stub or NavStubProducer()
+        self.waypoint = waypoint or WaypointProducer()
         self.capabilities = adapter.capabilities
         self.groups = groups_from_capabilities(self.capabilities)
         self.state = AuthorityState()
@@ -54,13 +73,24 @@ class AuthorityArbiter:
             raise ValueError(f"Group '{group}' not available on {self.capabilities.robot_id}")
         if group == "manip" and not self.capabilities.has_arms:
             raise ValueError("manip group not available — no arms")
-        owner = NAV_STUB_ID if mode == "AUTO" else HUMAN_ID
-        if mode == "AUTO" and group == "base":
-            self.nav_stub.reset_plan()
+
+        if mode == "AUTO":
+            owner = self._default_auto_owner(group)
+            if group == "base":
+                self.nav_stub.reset_plan()
+                self.waypoint.reset_plan()
+        elif mode == "SHARED":
+            owner = "blend"
+        else:
+            owner = HUMAN_ID
+
         self.state.set_group(group, GroupAuthority(mode=mode, owner=owner))
         self.state.estop_latched = False
         logger.info("arbiter set_mode %s=%s owner=%s", group, mode, owner)
         return {"group": group, "mode": mode, "owner": owner}
+
+    def _default_auto_owner(self, group: GroupName) -> str:
+        return VLA_ID if group == "manip" else NAV_STUB_ID
 
     def takeover(self, group: GroupName | None = None) -> dict:
         """Human reclaims authority (squeeze / MCP). Clears estop latch."""
@@ -84,7 +114,7 @@ class AuthorityArbiter:
         for g in ALL_GROUPS:
             if not self._group_allowed(g):
                 continue
-            if self.state.group(g).mode == "AUTO":
+            if self.state.group(g).mode in ("AUTO", "SHARED"):
                 return True
         return False
 
@@ -93,15 +123,22 @@ class AuthorityArbiter:
 
     def _resolve_group_base(self) -> tuple[BaseCommand | None, str]:
         auth = self.state.base
-        if auth.mode == "AUTO" and auth.owner == NAV_STUB_ID:
-            cmd = self.nav_stub.tick()
-            return cmd.base, NAV_STUB_ID
+        if auth.mode == "SHARED":
+            auto = self.nav_stub.tick().base
+            conf = float(self._last_human.confidence or 0.5)
+            return _blend(self._last_human.base, auto, 1 - conf), "blend"
+        if auth.mode == "AUTO":
+            if auth.owner == NAV_WAYPOINT_ID:
+                return self.waypoint.tick().base, NAV_WAYPOINT_ID
+            return self.nav_stub.tick().base, auth.owner
         return self._last_human.base, HUMAN_ID
 
     def _resolve_group_gaze(self) -> tuple[GazeCommand | None, str]:
         auth = self.state.gaze
         if auth.mode == "AUTO":
             return None, auth.owner
+        if auth.mode == "SHARED":
+            return self._last_human.gaze, "blend"
         return self._last_human.gaze, HUMAN_ID
 
     def resolve(self) -> ResolvedCommand:
@@ -111,6 +148,9 @@ class AuthorityArbiter:
         manip_src = "none"
         if self._group_allowed("manip") and self.state.manip.mode == "AUTO":
             manip_src = self.state.manip.owner
+        elif self._group_allowed("manip") and self.state.manip.mode == "SHARED":
+            manip = self._last_human.manip
+            manip_src = "blend"
         elif self._last_human.manip is not None:
             manip = self._last_human.manip
             manip_src = HUMAN_ID

@@ -1,5 +1,30 @@
 # Teleoperator MCP — Build Log
 
+## 2026-08-19 — round 3: VLA fleet control tower (12 features)
+
+### Tier 1 (safety/production)
+- Operator claim/auth: `auth.py`, claim/release/claims REST, WS token gate, Home claim UI. estop open.
+- Presence deadman: WS `presence` pulse + server-side estop on lapse.
+- `teleop_task_dispatch` + WaypointProducer + tasks.py (forward/reverse/turn/approach/sweep). VLA branch hardware-gated.
+
+### Tier 2 (Mode-B arc)
+- SHARED mode in arbiter (confidence blend), `VLA_ID` owner for manip AUTO.
+- Fake-VLA producer + `tests/test_tier12.py` (10 tests: claim, waypoint, blend, task gate, endpoints).
+- Episode library REST + webapp Episodes page (replay + curation labels).
+
+### Tier 3 (fleet/UX)
+- Ops console REST + webapp Ops page (multi-robot supervision; drive single-session by design).
+- Video/hub export: `scripts/publish-lerobot-hub.py` (refuses observation-less datasets; `--push`).
+
+### Tier 4 (polish)
+- Voice LLM fallback (Ollama) for free-form commands; estop stays keyword-gated.
+- `scripts/latency-bench.py` motion-to-command benchmark.
+- `docs/CONTROLLER_SWAP.md` weekend guide.
+- **VLA Fleet Control Tower** concept doc in mcp-central-docs + README crosslink.
+
+### Gates
+- 64 tests pass (63% cov), ruff 0, pyright 0, biome/tsc/build green.
+
 ## 2026-08-19 — assfix round 2 (voice control + remainder)
 
 ### Voice control via speech-mcp STT (fleet voice command bus)

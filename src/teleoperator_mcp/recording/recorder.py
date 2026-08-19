@@ -223,3 +223,62 @@ def get_recorder() -> SessionRecorder:
     if _recorder is None:
         _recorder = SessionRecorder(Path(settings.recording_dir))
     return _recorder
+
+
+def list_episodes() -> list[dict[str, Any]]:
+    """List finalized episodes from meta/episodes.jsonl (T2.3 replay/curation)."""
+    meta = get_recorder().base_dir / "meta" / "episodes.jsonl"
+    episodes: list[dict[str, Any]] = []
+    if not meta.exists():
+        return episodes
+    for line in meta.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            episodes.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return episodes
+
+
+def get_episode(episode_index: int) -> dict[str, Any] | None:
+    """Return one episode with its frames for replay (T2.3)."""
+    episodes = list_episodes()
+    match = next((e for e in episodes if e.get("episode_index") == episode_index), None)
+    if not match:
+        return None
+    ep_dir = get_recorder().base_dir / str(match.get("path", ""))
+    frames_path = ep_dir / "frames.jsonl"
+    frames: list[dict[str, Any]] = []
+    if frames_path.exists():
+        for line in frames_path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                try:
+                    frames.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    match["frames"] = frames
+    match["frame_count"] = len(frames)
+    return match
+
+
+def curate_episode(episode_index: int, label: str, note: str = "") -> dict[str, Any]:
+    """Attach a curation label + note to an episode (T2.3)."""
+    episodes = list_episodes()
+    match = next((e for e in episodes if e.get("episode_index") == episode_index), None)
+    if not match:
+        return {"success": False, "message": f"No episode {episode_index}"}
+    ep_dir = get_recorder().base_dir / str(match.get("path", ""))
+    cur_path = ep_dir / "curation.json"
+    cur = {
+        "episode_index": episode_index,
+        "label": label,
+        "note": note,
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+    cur_path.write_text(json.dumps(cur, indent=2), encoding="utf-8")
+    return {
+        "success": True,
+        "message": f"Episode {episode_index} curated ({label})",
+        "curation": cur,
+    }

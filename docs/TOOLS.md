@@ -22,6 +22,7 @@ All tools return `{success, message, ...}`. Annotations: `[RO]` read-only, `[M]`
 | teleop_livekit_publisher_stop | M | Stop publisher | — |
 | show_teleop_status_card | RO | Prefab App status card | — |
 | teleop_voice_command | M | Execute speech-mcp STT command (estop/takeover/mode/gaze/video) | transcript |
+| teleop_task_dispatch | M | Dispatch a language goal to the AUTO producer (waypoint/VLA) | goal |
 | teleop_shutdown | D | Graceful shutdown | confirm (must be true) |
 
 ### teleop_status
@@ -109,6 +110,14 @@ Requires `confirm=true`. Stops publisher, disconnects clients, exits.
 | POST | /api/v1/teleop/gaze | REST mirror of teleop_set_gaze (pan, tilt) |
 | POST | /api/v1/teleop/gaze/center | REST mirror of teleop_gaze_center |
 | POST | /api/v1/teleop/voice | REST mirror of teleop_voice_command (STT transcript body) |
+| POST | /api/v1/teleop/task | Dispatch a language goal to the AUTO producer |
+| POST | /api/v1/session/claim | Claim a robot for an operator — returns WS token |
+| POST | /api/v1/session/release | Release a claim by token |
+| GET | /api/v1/session/claims | List active robot claims |
+| GET | /api/v1/supervision | Multi-robot supervision view |
+| GET | /api/v1/episodes | List recorded episodes |
+| GET | /api/v1/episodes/{idx} | One episode including frames |
+| POST | /api/v1/episodes/{idx}/curate | Attach keep/reject/uncertain label + note |
 | POST | /api/v1/teleop/set_mode | REST mirror of teleop_set_mode (group, mode, confirm_bench) |
 | POST | /api/v1/recording/export | Export JSONL to LeRobot parquet |
 | POST | /api/shutdown | Graceful shutdown (confirm=true) |

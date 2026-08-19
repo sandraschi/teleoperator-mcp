@@ -13,6 +13,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from ..activity_log import log_activity
 from ..adapters.boomy import BoomyAdapter
+from ..auth import verify_token
 from ..config import settings
 from ..gaze import GazeFollower
 from ..recording import get_recorder
@@ -45,10 +46,18 @@ class SessionStats:
 _active_session: WebSocket | None = None
 _stats = SessionStats()
 _watchdog_latched = False
+_presence_at: float = 0.0
 
 
 def session_active() -> bool:
     return _active_session is not None
+
+
+def _presence_missed() -> bool:
+    """True when the operator presence pulse has expired (headset-removed / suspend)."""
+    if _presence_at == 0.0:
+        return False
+    return (time.time() - _presence_at) > settings.presence_timeout_s
 
 
 def session_stats() -> dict:
@@ -212,11 +221,14 @@ async def _notify_client(payload: dict) -> None:
 
 
 async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> None:
-    global _stats, _watchdog_latched
+    global _stats, _watchdog_latched, _presence_at
 
     msg_type = payload.get("type")
-    if msg_type == "heartbeat":
+    if msg_type in ("heartbeat", "presence"):
         # Heartbeats keep the socket alive but must not reset pose watchdog or speech latch.
+        # A presence pulse extends the operator-presence deadman (headset-removed gate).
+        if msg_type == "presence":
+            _presence_at = time.time()
         return
 
     _stats.frames_in += 1
@@ -264,8 +276,12 @@ async def _handle_pose_frame(payload: dict, http_client: httpx.AsyncClient) -> N
     )
 
 
-async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
-    global _active_session, _stats, _watchdog_latched
+async def teleop_websocket(websocket: WebSocket, robot: str = "boomy", token: str = "") -> None:
+    global _active_session, _stats, _watchdog_latched, _presence_at
+
+    if not verify_token(token, robot):
+        await websocket.close(code=4001, reason="Operator claim token required (estop stays open)")
+        return
 
     if _active_session is not None:
         await websocket.close(code=4003, reason="Another teleop session is active")
@@ -281,6 +297,7 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
 
     _active_session = websocket
     _watchdog_latched = False
+    _presence_at = time.time()
     reset_auto_timer()
     get_arbiter().takeover()
     _stats = SessionStats(robot=robot, client=websocket.client.host if websocket.client else None)
@@ -299,21 +316,25 @@ async def teleop_websocket(websocket: WebSocket, robot: str = "boomy") -> None:
         global _watchdog_latched
         arbiter = get_arbiter()
         while _active_session is websocket:
-            await asyncio.sleep(settings.watchdog_ms / 1000.0)
+            await asyncio.sleep(min(settings.watchdog_ms, 500) / 1000.0)
             last = _stats.last_frame_at
-            if last is None:
-                continue
-            if (time.time() - last) * 1000.0 <= settings.watchdog_ms:
-                continue
-            if _watchdog_latched:
-                continue
-            _watchdog_latched = True
-            _stats.watchdog_latched = True
-            logger.warning("watchdog: no frames - e-stop (latched)")
-            reset_auto_timer()
-            await arbiter.estop(http_client)
-            await speak_warning("Watchdog stop. No headset frames. Robot halted.")
-            await _notify_client({"ok": False, "watchdog": True})
+            if last is not None and (time.time() - last) * 1000.0 > settings.watchdog_ms:
+                if not _watchdog_latched:
+                    _watchdog_latched = True
+                    _stats.watchdog_latched = True
+                    logger.warning("watchdog: no frames - e-stop (latched)")
+                    reset_auto_timer()
+                    await arbiter.estop(http_client)
+                    await speak_warning("Watchdog stop. No headset frames. Robot halted.")
+                    await _notify_client({"ok": False, "watchdog": True})
+            if _presence_missed() and not _watchdog_latched:
+                _watchdog_latched = True
+                _stats.watchdog_latched = True
+                logger.warning("presence deadman: headset presence expired - e-stop")
+                reset_auto_timer()
+                await arbiter.estop(http_client)
+                await speak_warning("Operator presence lost. Robot halted.")
+                await _notify_client({"ok": False, "presence": True})
 
     try:
         async with httpx.AsyncClient() as http_client:

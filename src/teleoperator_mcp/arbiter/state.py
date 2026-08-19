@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-TeleopMode = Literal["DIRECT", "AUTO"]
+TeleopMode = Literal["DIRECT", "AUTO", "SHARED"]
 GroupName = Literal["base", "gaze", "manip"]
 
 ALL_GROUPS: tuple[GroupName, ...] = ("base", "gaze", "manip")

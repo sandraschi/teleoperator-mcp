@@ -1,5 +1,24 @@
 
 
+## [Unreleased] — 2026-08-19 (round 3: VLA fleet control tower)
+
+### Added
+- **Operator claim/auth (safety):** `POST /api/v1/session/claim` + `release` + `claims`; WS teleop requires a claim token (`TELEOP_REQUIRE_CLAIM`); estop stays unauthenticated. Webapp claim UI on Home.
+- **Presence deadman:** headset `presence` pulse over WS; estop when it lapses (`TELEOP_PRESENCE_TIMEOUT_S`).
+- **`teleop_task_dispatch(goal)`** + `POST /api/v1/teleop/task`: language goal -> AUTO waypoint plan (forward/reverse/turn/approach/sweep); manipulation goals hardware-gated. WaypointProducer added.
+- **SHARED mode** in the arbiter (confidence-blended human+auto base command).
+- **Fake-VLA producer** harness + tier tests (producer contract, blend, waypoint, handoff).
+- **Episode library:** `GET /api/v1/episodes` + `/{idx}` + `/curate`; webapp Episodes page (replay + keep/reject/uncertain).
+- **Ops console:** `GET /api/v1/supervision` + webapp Ops page (multi-robot claim/reachability; drive stays single-session).
+- **Voice LLM fallback:** free-form voice falls back to Ollama (`TELEOP_VOICE_LLM_MODEL`) when keyword rules miss; estop stays keyword-gated.
+- **Latency benchmark:** `scripts/latency-bench.py` (motion-to-command p50/p90/p99).
+- **Hub export:** `scripts/publish-lerobot-hub.py` (refuses observation-less datasets).
+- **Controller-swap guide:** `docs/CONTROLLER_SWAP.md`.
+- **VLA Fleet Control Tower crosslink:** `mcp-central-docs/patterns/VLA_FLEET_CONTROL_TOWER.md` + README section.
+
+### Changed
+- Webapp nav: added Ops + Episodes pages; claim gate blocks Enter VR until claimed.
+
 ## [Unreleased] — 2026-08-19 (assfix)
 
 ### Added

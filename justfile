@@ -56,6 +56,14 @@ gates-green: lint types test
 integration-test:
     uv run python scripts/ws-integration-harness.py --frames 60 --look
 
+# --- Latency benchmark (motion-to-command; backend must be running) ---
+latency-bench:
+    uv run python scripts/latency-bench.py
+
+# --- Publish a curated LeRobot dataset to the hub (add --push to upload) ---
+publish-hub:
+    uv run python scripts/publish-lerobot-hub.py --input dist/lerobot_export --repo teleop-datasets/teleoperator
+
 ci:
     uv sync --all-extras
     uv run pytest tests/ -q

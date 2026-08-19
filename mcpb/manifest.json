@@ -28,6 +28,8 @@
     { "name": "teleop_livekit_publisher_start", "description": "Start MJPEG to LiveKit publisher" },
     { "name": "teleop_livekit_publisher_stop", "description": "Stop LiveKit camera publisher" },
     { "name": "show_teleop_status_card", "description": "Prefab status card for robot + connection health" },
+    { "name": "teleop_voice_command", "description": "Execute speech-mcp STT voice command" },
+    { "name": "teleop_task_dispatch", "description": "Dispatch a language goal to the AUTO producer" },
     { "name": "teleop_shutdown", "description": "Gracefully shut down the server" }
   ]
 }

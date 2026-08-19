@@ -16,10 +16,11 @@ export class PoseStream {
   onOpen: (() => void) | null = null;
   onClose: (() => void) | null = null;
 
-  constructor(robot: string) {
+  constructor(robot: string, claimToken = "") {
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    this.url = `${proto}//${host}/ws/teleop?robot=${encodeURIComponent(robot)}`;
+    const tokenParam = claimToken ? `&token=${encodeURIComponent(claimToken)}` : "";
+    this.url = `${proto}//${host}/ws/teleop?robot=${encodeURIComponent(robot)}${tokenParam}`;
   }
 
   connect(): void {
@@ -73,7 +74,7 @@ export class PoseStream {
     this.ws.onopen = () => {
       this.reconnectAttempt = 0;
       this.onOpen?.();
-      this.heartbeatTimer = window.setInterval(() => this.sendHeartbeat(), 500);
+      this.heartbeatTimer = window.setInterval(() => this.sendPresence(), 500);
     };
     this.ws.onclose = () => {
       if (this.heartbeatTimer) window.clearInterval(this.heartbeatTimer);
@@ -102,5 +103,11 @@ export class PoseStream {
   private sendHeartbeat(): void {
     if (!this.connected) return;
     this.ws?.send(JSON.stringify({ v: 1, type: "heartbeat", t: Date.now() }));
+  }
+
+  private sendPresence(): void {
+    if (!this.connected) return;
+    // Operator-presence deadman: server e-stops if this pulse stops arriving.
+    this.ws?.send(JSON.stringify({ v: 1, type: "presence", t: Date.now() }));
   }
 }

@@ -30,6 +30,11 @@ export function HomePage() {
   const [vrSupported, setVrSupported] = useState(false);
   const [entering, setEntering] = useState(false);
   const [robot, setRobot] = useState(robotFromUrl);
+  const [operatorId, setOperatorId] = useState(() => localStorage.getItem("teleop_operator") || "");
+  const [claimToken, setClaimToken] = useState(
+    () => localStorage.getItem("teleop_claim_token") || "",
+  );
+  const [claiming, setClaiming] = useState(false);
   const setOnline = useBackendStore((s) => s.setOnline);
   const pollAttempt = useRef(0);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,6 +86,44 @@ export function HomePage() {
     }
   }, [setOnline]);
 
+  const claimRobot = async () => {
+    if (!operatorId.trim()) return;
+    setClaiming(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/session/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operator_id: operatorId.trim(), robot_id: robot }),
+      });
+      const data = (await res.json()) as { success?: boolean; token?: string; message?: string };
+      if (data.success && data.token) {
+        setClaimToken(data.token);
+        localStorage.setItem("teleop_claim_token", data.token);
+        localStorage.setItem("teleop_operator", operatorId.trim());
+      } else {
+        setXrHint(data.message ?? "Claim failed");
+      }
+    } catch {
+      setXrHint("Claim failed — is the backend running?");
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const releaseClaim = async () => {
+    if (!claimToken) return;
+    try {
+      await fetch(`${API_BASE}/api/v1/session/release`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: claimToken }),
+      });
+    } finally {
+      setClaimToken("");
+      localStorage.removeItem("teleop_claim_token");
+    }
+  };
+
   useEffect(() => {
     void pollHealth();
     const schedule = () => {
@@ -130,7 +173,7 @@ export function HomePage() {
     if (!canvas) return;
     setEntering(true);
     try {
-      const session = new XrSession(canvas, robot);
+      const session = new XrSession(canvas, robot, claimToken);
       await session.start();
     } catch (err) {
       setXrHint(err instanceof Error ? err.message : String(err));
@@ -220,10 +263,45 @@ export function HomePage() {
             Resonite OSC on port 9000 — register with scripts/register-vboomy.ps1
           </p>
         )}
+
+        <div className="tool-row" data-testid="claim-row">
+          <div style={{ flex: 1, minWidth: "10rem" }}>
+            <label htmlFor="operator-id">Operator claim</label>
+            <input
+              id="operator-id"
+              value={operatorId}
+              onChange={(e) => setOperatorId(e.target.value)}
+              placeholder="Your name / operator id"
+              disabled={!!claimToken}
+              style={{ marginTop: "0.25rem", width: "100%" }}
+            />
+          </div>
+          {claimToken ? (
+            <button type="button" className="btn secondary" onClick={() => void releaseClaim()}>
+              Release
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn"
+              disabled={claiming || !operatorId.trim()}
+              onClick={() => void claimRobot()}
+              data-testid="claim-button"
+            >
+              {claiming ? "Claiming…" : "Claim robot"}
+            </button>
+          )}
+        </div>
+        {claimToken && (
+          <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem", color: "var(--shell-muted)" }}>
+            Robot claimed. The teleop socket requires this token; e-stop always works.
+          </p>
+        )}
+
         <button
           type="button"
           className="btn"
-          disabled={!vrSupported || entering}
+          disabled={!vrSupported || entering || !claimToken}
           onClick={() => void enterVr()}
         >
           {entering ? "In VR session…" : "Enter VR"}

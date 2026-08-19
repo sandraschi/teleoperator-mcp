@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     speech_enabled: bool = True
     speech_mcp_url: str = "http://127.0.0.1:10909"
     speech_provider: str = "windows"
+    # Operator claim gate (safety): WS teleop requires a claim token. estop stays open.
+    require_claim: bool = True
+    # Presence deadman: seconds a WS session may go without a presence pulse before estop.
+    presence_timeout_s: float = 3.0
+    # Voice LLM fallback model (Ollama) for free-form commands that miss keyword rules.
+    voice_llm_model: str = "gemma3:4b"
     # Comma-separated browser origins (WebXR dev + Pico/Tailscale). No wildcard + credentials.
     cors_origins: str = (
         "http://localhost:10900,"

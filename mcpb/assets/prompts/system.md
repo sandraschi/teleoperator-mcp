@@ -140,6 +140,33 @@ Gracefully shuts down the entire teleoperator server: stops the LiveKit publishe
 disconnects all WebXR clients, and terminates the process. Requires `confirm` to be set to
 true as a guard against accidental shutdown.
 
+### teleop_task_dispatch
+
+Dispatches a language goal to the AUTO producer. Accepted goals: forward, reverse, turn
+left/right, approach, sweep/scan/patrol — each mapped to a waypoint plan (linear/angular
+segments with durations) that runs under AUTO base authority with the full safety stack
+(WebXR gate, AUTO timer, estop). Manipulation goals (open/grasp/fridge/can) return a
+hardware-gated message until a wheeled dual-arm platform ships. Returns the resolved plan
+and the mode change result.
+
+## Operator Claim and Supervision
+
+For safety, driving a robot over WebXR requires an operator claim. `POST /api/v1/session/claim`
+with an operator id and robot id returns a token; the teleop WebSocket requires it as the
+`token` query parameter. The emergency stop path is never gated — estop always works.
+Claims are released via `POST /api/v1/session/release` and listed via
+`GET /api/v1/session/claims`. A headset presence pulse over the WebSocket keeps the session
+alive; if it lapses, the robot e-stops (presence deadman).
+
+The `GET /api/v1/supervision` endpoint is the multi-robot supervision view: every robot's
+claim state, operator, and reachability. Driving remains single-session by design (one
+physical robot, one operator), but supervision is fleet-wide. The episode library at
+`GET /api/v1/episodes` lists recorded sessions for replay and curation
+(`POST /api/v1/episodes/{idx}/curate` with keep/reject/uncertain labels), feeding the data
+flywheel toward VLA fine-tuning. This server is the hub of the fleet's VLA Fleet Control
+Tower: teleop, claims, episodes, task dispatch, and voice control are the supervision
+surface for embodied AI across the robotics fleet.
+
 ## MCP Resources and Prompts
 
 The server registers one resource, `teleop://status`, which returns the live session status

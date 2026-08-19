@@ -116,6 +116,18 @@ Headset URL: `https://goliath.<your-tailnet>.ts.net/` → **Enter VR**.
 
 ---
 
+## Fleet integration
+
+Teleoperator is the **VLA Fleet Control Tower** hub — the supervision surface that ties the
+robotics fleet together (teleop, claims, episodes/curation, VLA producers). See
+[`mcp-central-docs/patterns/VLA_FLEET_CONTROL_TOWER.md`](https://github.com/sandraschi/mcp-central-docs/blob/main/patterns/VLA_FLEET_CONTROL_TOWER.md).
+
+- **Supervision**: `GET /api/v1/supervision` — every robot's claim + reachability (webapp `/ops`).
+- **Episodes**: `GET /api/v1/episodes` + replay + curation (webapp `/episodes`).
+- **Task dispatch**: `teleop_task_dispatch(goal)` — AUTO waypoint plans (VLA branch hardware-gated).
+- **Voice**: `teleop_voice_command` over the fleet voice bus.
+- **Data flywheel**: `scripts/publish-lerobot-hub.py` packs curated episodes for VLA fine-tuning.
+
 ## Tailscale on viewers
 
 **No fundamental problem** — install Tailscale on Pico or Meta Quest, same tailnet as Goliath, open the `https://*.ts.net` URL. Headsets do not talk to Boomy's LAN IP; Goliath bridges via yahboom-mcp.

@@ -60,6 +60,10 @@ Gracefully shut down the teleoperator server: stops LiveKit publisher, disconnec
 
 Execute a voice command from speech-mcp STT: emergency stop, take over, center camera, look left/right/up/down, start/stop LiveKit video, set base/gaze to AUTO/DIRECT, or status. Keyword-rule dispatch, no LLM. Args: `transcript`.
 
+### teleop_task_dispatch
+
+Dispatch a language goal to the AUTO producer: forward, reverse, turn left/right, approach, sweep/scan/patrol (waypoint plans under full safety stack). Manipulation goals are hardware-gated until a dual-arm platform ships. Args: `goal`.
+
 ---
 
 ## Skills, prompts, resources
@@ -95,6 +99,14 @@ Execute a voice command from speech-mcp STT: emergency stop, take over, center c
 | POST | /api/v1/teleop/gaze | REST mirror of teleop_set_gaze |
 | POST | /api/v1/teleop/gaze/center | REST mirror of teleop_gaze_center |
 | POST | /api/v1/teleop/voice | REST mirror of teleop_voice_command (STT transcript) |
+| POST | /api/v1/teleop/task | Dispatch a language goal to the AUTO producer (waypoint/VLA) |
+| POST | /api/v1/session/claim | Claim a robot for an operator — returns WS token (estop stays open) |
+| POST | /api/v1/session/release | Release a claim by token |
+| GET | /api/v1/session/claims | List active robot claims |
+| GET | /api/v1/supervision | Multi-robot supervision view (claim + reachability per robot) |
+| GET | /api/v1/episodes | List recorded episodes (replay/curation) |
+| GET | /api/v1/episodes/{idx} | One episode including frames |
+| POST | /api/v1/episodes/{idx}/curate | Attach keep/reject/uncertain label + note |
 | POST | /api/v1/teleop/set_mode | REST mirror of teleop_set_mode |
 | POST | /api/v1/recording/export | Export JSONL to LeRobot parquet |
 | POST | /api/shutdown | Graceful shutdown (confirm=true) |

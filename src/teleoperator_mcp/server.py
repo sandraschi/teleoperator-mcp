@@ -31,6 +31,7 @@ from .activity_log import (
     query_logs,
 )
 from .adapters.registry import list_robots
+from .auth import claim_robot, list_claims, release_claim
 from .config import cors_origins_list, settings
 from .livekit import (
     get_publisher,
@@ -39,7 +40,9 @@ from .livekit import (
     start_publisher,
     stop_publisher,
 )
-from .runtime import robots_catalog
+from .recording.recorder import curate_episode, get_episode, list_episodes
+from .runtime import get_waypoint, robots_catalog
+from .tasks import build_plan, plan_display
 from .voice_commands import parse_voice_command
 from .ws.handler import (
     disconnect_all,
@@ -451,12 +454,96 @@ async def teleop_voice_command(
     return await _execute_voice_command(transcript)
 
 
+async def _voice_llm_fallback(transcript: str) -> dict | None:
+    """Ask a local LLM (Ollama) to map free-form speech to a known teleop action.
+
+    Returns None when no LLM is reachable or the model declines. Safety-critical
+    verbs (estop etc.) are always handled by keyword rules upstream, never here.
+    """
+    import httpx
+
+    prompt = (
+        "Map this spoken teleop command to exactly one action from this list, "
+        'reply with a single JSON object {"action": ..., "args": {...}}.\n'
+        "Actions: estop, takeover, gaze_center, set_gaze (pan,tilt 0-180), "
+        "set_mode (group base|gaze|manip, mode DIRECT|AUTO), livekit_start, "
+        "livekit_stop, status.\n"
+        f"Transcript: {transcript}"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                "http://localhost:11434/api/generate",
+                json={"model": settings.voice_llm_model, "prompt": prompt, "stream": False},
+            )
+            data = r.json()
+            text = (data.get("response") or "").strip()
+        if "estop" in text or "emergency" in text.lower():
+            # Never let an LLM accidentally trigger estop from a mis-parse; estop is
+            # keyword-gated upstream, and here we refuse to invent it.
+            return None
+        action_map = {
+            "takeover": "takeover",
+            "gaze_center": "gaze_center",
+            "set_gaze": "set_gaze",
+            "set_mode": "set_mode",
+            "livekit_start": "livekit_start",
+            "livekit_stop": "livekit_stop",
+            "status": "status",
+        }
+        parsed_action = None
+        for key in action_map:
+            if key in text:
+                parsed_action = action_map[key]
+                break
+        if not parsed_action:
+            return None
+        return await _dispatch_voice_action(parsed_action, {})
+    except Exception:
+        logger.debug("voice LLM fallback unavailable", exc_info=True)
+        return None
+
+
+async def _dispatch_voice_action(action: str, args: dict) -> dict:
+    """Execute a resolved teleop action (shared by keyword + LLM-fallback paths)."""
+    if action == "estop":
+        result = await trigger_estop(reason="voice")
+    elif action == "takeover":
+        result = await trigger_takeover()
+    elif action == "gaze_center":
+        result = await trigger_gaze_center()
+    elif action == "set_gaze":
+        result = await trigger_set_gaze(**args)
+    elif action == "set_mode":
+        result = await trigger_set_mode(**args)
+    elif action == "livekit_start":
+        result = await start_publisher()
+    elif action == "livekit_stop":
+        result = await stop_publisher()
+    elif action == "status":
+        result = {"success": True, "message": "Session status", **session_stats()}
+    else:  # pragma: no cover - guarded by callers
+        return {"success": False, "message": f"Unhandled action '{action}'", "result": {}}
+
+    return {
+        "success": bool(result.get("success", True)),
+        "message": result.get("message", action),
+        "action": action,
+        "result": result,
+    }
+
+
 async def _execute_voice_command(transcript: str) -> dict:
     """Shared voice-command dispatch for the MCP tool and REST mirror."""
     parsed = parse_voice_command(transcript)
     action = parsed.action
 
     if action == "unknown":
+        # T4.1: LLM fallback — let a local LLM interpret free-form voice before giving up.
+        # estop/safety keywords are handled upstream in parse_voice_command and never reach here.
+        fallback = await _voice_llm_fallback(transcript)
+        if fallback is not None:
+            return fallback
         return {
             "success": False,
             "message": (
@@ -468,31 +555,74 @@ async def _execute_voice_command(transcript: str) -> dict:
             "result": {},
         }
 
-    if action == "estop":
-        result = await trigger_estop(reason="voice")
-    elif action == "takeover":
-        result = await trigger_takeover()
-    elif action == "gaze_center":
-        result = await trigger_gaze_center()
-    elif action == "set_gaze":
-        result = await trigger_set_gaze(**parsed.args)
-    elif action == "set_mode":
-        result = await trigger_set_mode(**parsed.args)
-    elif action == "livekit_start":
-        result = await start_publisher()
-    elif action == "livekit_stop":
-        result = await stop_publisher()
-    elif action == "status":
-        result = {"success": True, "message": "Session status", **session_stats()}
-    else:  # pragma: no cover - parse_voice_command is the exhaustive switch
-        return {"success": False, "message": f"Unhandled action '{action}'", "result": {}}
+    return await _dispatch_voice_action(action, parsed.args)
 
+
+async def dispatch_task(goal: str) -> dict:
+    """Dispatch a language goal to the AUTO producer (waypoint plan or VLA)."""
+    from .ws.handler import trigger_set_mode
+
+    display = plan_display(goal)
+    if display is None:
+        return {
+            "success": False,
+            "message": (
+                f"Unrecognized goal: '{goal}'. Try: forward, reverse, turn left/right, "
+                "approach, sweep/scan/patrol, or a manipulation goal (fridge/can/grasp) "
+                "on a dual-arm platform."
+            ),
+        }
+
+    if display.startswith("vla"):
+        return {
+            "success": False,
+            "message": (
+                "VLA manipulation tasks are hardware-gated (wheeled dual-arm with a "
+                "manip group + out-of-process producer). Base waypoint tasks work on Boomy."
+            ),
+        }
+
+    plan = build_plan(goal)
+    if not plan:
+        return {"success": False, "message": f"No waypoint plan for '{goal}'"}
+
+    mode_result = await trigger_set_mode("base", "AUTO")
+    if not mode_result.get("success"):
+        return {"success": False, "message": mode_result.get("message", "AUTO refused")}
+
+    get_waypoint().dispatch(plan)
+    summary = ", ".join(f"{w.duration_s}s@lin={w.linear}" for w in plan)
     return {
-        "success": bool(result.get("success", True)),
-        "message": result.get("message", action),
-        "action": action,
-        "result": result,
+        "success": True,
+        "message": f"Task dispatched: {display} ({summary})",
+        "plan": display,
+        "goal": goal,
+        "mode": mode_result,
     }
+
+
+@mcp.tool(annotations=_MUTATING)
+async def teleop_task_dispatch(
+    goal: Annotated[
+        str, Field(description="Natural-language goal (e.g. 'approach slowly', 'sweep left')")
+    ],
+) -> dict:
+    """Dispatch a language goal to the AUTO producer (waypoint nav now, VLA later).
+
+    Accepts goals like "forward", "reverse", "turn left/right", "approach", "sweep",
+    "scan", "patrol". Waypoint profiles run under AUTO base authority with the full
+    safety stack (WebXR gate, AUTO timer, estop). Manipulation goals return a
+    hardware-gated message until a dual-arm platform ships.
+
+    ## Return Format
+    {"success": bool, "message": str, "plan": str|None, "goal": str, "mode": dict}
+
+    ## Examples
+    teleop_task_dispatch(goal="approach slowly")
+    teleop_task_dispatch(goal="sweep the room")
+    teleop_task_dispatch(goal="open the fridge")  # hardware-gated (VLA)
+    """
+    return await dispatch_task(goal)
 
 
 class LiveKitTokenBody(BaseModel):
@@ -656,6 +786,73 @@ async def api_robots() -> dict:
     return {"robots": robots_catalog()}
 
 
+class ClaimBody(BaseModel):
+    operator_id: str = Field(min_length=1, max_length=64)
+    robot_id: str = Field(min_length=1, max_length=32)
+
+
+class ReleaseBody(BaseModel):
+    token: str = Field(min_length=8, max_length=128)
+
+
+@app.post("/api/v1/session/claim")
+async def api_session_claim(body: ClaimBody) -> dict:
+    """Claim a robot for an operator — returns the WS token (estop stays open)."""
+    return claim_robot(body.operator_id, body.robot_id)
+
+
+@app.post("/api/v1/session/release")
+async def api_session_release(body: ReleaseBody) -> dict:
+    return release_claim(body.token)
+
+
+@app.get("/api/v1/session/claims")
+async def api_session_claims() -> dict:
+    return {"claims": list_claims()}
+
+
+@app.get("/api/v1/supervision")
+async def api_supervision() -> dict:
+    """Multi-robot supervision view: claim + reachability per robot (drive is single-session)."""
+    from .auth import list_claims
+    from .ws.handler import session_stats
+
+    claims = list_claims()
+    robots = robots_catalog()
+    rows = []
+    for rid, meta in robots.items():
+        if meta.get("status") != "available":
+            continue
+        claim = claims.get(rid)
+        rows.append(
+            {
+                "robot_id": rid,
+                "display_name": meta.get("display_name", rid),
+                "virtual_twin": meta.get("virtual_twin", False),
+                "claimed": claim is not None,
+                "operator_id": claim.get("operator_id") if claim else None,
+                "claimed_at": claim.get("claimed_at") if claim else None,
+            }
+        )
+    stats = session_stats()
+    return {
+        "robots": rows,
+        "active": stats.get("active", False),
+        "active_robot": stats.get("active_robot"),
+        "require_claim": settings.require_claim,
+    }
+
+
+class TaskDispatchBody(BaseModel):
+    goal: str = Field(min_length=1, max_length=300)
+
+
+@app.post("/api/v1/teleop/task")
+async def api_teleop_task(body: TaskDispatchBody) -> dict:
+    """Dispatch a language goal to the AUTO producer (waypoint or VLA)."""
+    return await dispatch_task(body.goal)
+
+
 @app.get("/api/v1/livekit/config")
 async def api_livekit_config(robot: str | None = Query(default=None)) -> dict:
     """Public LiveKit connection info for WebXR client (no secrets)."""
@@ -711,6 +908,32 @@ async def api_recording_export(body: RecordingExportBody | None = None) -> dict:
         overwrite=req.overwrite,
     )
     return export_summary(result)
+
+
+class CurateBody(BaseModel):
+    label: str = Field(min_length=1, max_length=32)
+    note: str = Field(default="", max_length=500)
+
+
+@app.get("/api/v1/episodes")
+async def api_episodes() -> dict:
+    """List finalized episodes for replay/curation (T2.3)."""
+    return {"episodes": list_episodes()}
+
+
+@app.get("/api/v1/episodes/{episode_index}")
+async def api_episode_detail(episode_index: int) -> dict:
+    """One episode including its frames (replay)."""
+    ep = get_episode(episode_index)
+    if ep is None:
+        return {"success": False, "message": f"No episode {episode_index}"}
+    return {"success": True, "episode": ep}
+
+
+@app.post("/api/v1/episodes/{episode_index}/curate")
+async def api_episode_curate(episode_index: int, body: CurateBody) -> dict:
+    """Attach a curation label + note to an episode."""
+    return curate_episode(episode_index, body.label, body.note)
 
 
 @app.get("/api/skills")
@@ -893,6 +1116,7 @@ async def diagnostics() -> dict:
         {"name": "teleop_livekit_publisher_stop"},
         {"name": "show_teleop_status_card"},
         {"name": "teleop_voice_command"},
+        {"name": "teleop_task_dispatch"},
         {"name": "teleop_shutdown"},
     ]
     return {
@@ -925,6 +1149,7 @@ async def capabilities() -> dict:
         "teleop_livekit_publisher_stop",
         "show_teleop_status_card",
         "teleop_voice_command",
+        "teleop_task_dispatch",
         "teleop_shutdown",
     ]
     return {
@@ -964,8 +1189,12 @@ async def capabilities() -> dict:
 
 
 @app.websocket("/ws/teleop")
-async def ws_teleop(websocket: WebSocket, robot: str = "boomy") -> None:
-    await teleop_websocket(websocket, robot=robot)
+async def ws_teleop(
+    websocket: WebSocket,
+    robot: str = "boomy",
+    token: str = "",
+) -> None:
+    await teleop_websocket(websocket, robot=robot, token=token)
 
 
 app.mount("/mcp", _mcp_http)

@@ -5,20 +5,26 @@ from __future__ import annotations
 from .adapters.base import RobotAdapter
 from .adapters.registry import create_adapter, list_robots
 from .arbiter.core import AuthorityArbiter
+from .producers.fake_vla import FakeVlaProducer
 from .producers.human_pose import HumanPoseProducer
+from .producers.waypoint import WaypointProducer
 
 _active_robot: str = "boomy"
 _adapter: RobotAdapter = create_adapter("boomy")
 _human = HumanPoseProducer(_adapter)  # type: ignore[arg-type]
 _arbiter = AuthorityArbiter(_adapter, human=_human)  # type: ignore[arg-type]
+_vla = FakeVlaProducer()
+_waypoint = WaypointProducer()
 
 
 def bind_robot(robot_id: str) -> RobotAdapter:
     """Select adapter for WS ?robot= (M2). Rebuilds arbiter + human producer."""
-    global _active_robot, _adapter, _human, _arbiter
+    global _active_robot, _adapter, _human, _arbiter, _vla, _waypoint
     _adapter = create_adapter(robot_id)
     _human = HumanPoseProducer(_adapter)  # type: ignore[arg-type]
-    _arbiter = AuthorityArbiter(_adapter, human=_human)  # type: ignore[arg-type]
+    _vla = FakeVlaProducer()
+    _waypoint = WaypointProducer()
+    _arbiter = AuthorityArbiter(_adapter, human=_human, waypoint=_waypoint)  # type: ignore[arg-type]
     _active_robot = robot_id.lower()
     return _adapter
 
@@ -29,6 +35,14 @@ def get_adapter() -> RobotAdapter:
 
 def get_arbiter() -> AuthorityArbiter:
     return _arbiter
+
+
+def get_vla() -> FakeVlaProducer:
+    return _vla
+
+
+def get_waypoint() -> WaypointProducer:
+    return _waypoint
 
 
 def get_active_robot() -> str:
