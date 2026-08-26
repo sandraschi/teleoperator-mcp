@@ -76,7 +76,7 @@ ci:
 build-native:
     Set-Location '{{justfile_directory()}}\native'
     $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
-    npx @tauri-apps/cli build
+    pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
 
 
 # Bootstrap: install dev deps + pre-commit hook
