@@ -1,4 +1,4 @@
-"""Teleop session recording — LeRobot-compatible JSONL episodes (M4)."""
+"""Teleop session recording - LeRobot-compatible JSONL episodes (M4)."""
 
 from __future__ import annotations
 

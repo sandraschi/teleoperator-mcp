@@ -1,4 +1,4 @@
-"""Egress sink — tap decoded video frames into teleop episodes.
+"""Egress sink - tap decoded video frames into teleop episodes.
 
 Closes the T3.3 flywheel gap: a VLA episode without observations is a
 half-dataset. The LiveKit publisher decodes each JPEG before capturing it to
@@ -10,7 +10,7 @@ The recorder then matches each teleop frame to the nearest video frame within
 as an `observation.image.<key>` column so the parquet export carries it.
 
 Frames that arrive while no teleop session is active are dropped after the
-ring buffer overflows — recording is session-scoped by design.
+ring buffer overflows - recording is session-scoped by design.
 """
 
 from __future__ import annotations

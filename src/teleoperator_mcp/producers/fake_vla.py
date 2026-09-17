@@ -1,4 +1,4 @@
-"""Fake VLA producer — deterministic simulation of an out-of-process VLA.
+"""Fake VLA producer - deterministic simulation of an out-of-process VLA.
 
 Purpose (T2.1): exercise the arbiter's producer contract, AUTO authority, and
 bumpless handoff WITHOUT a real policy or hardware. It emits scripted manip
@@ -64,7 +64,7 @@ class FakeVlaProducer:
         return cmd
 
     def current_command(self) -> ProducerCommand:
-        """Current output without advancing — used to seed human takeover."""
+        """Current output without advancing - used to seed human takeover."""
         return self.tick()
 
     @property

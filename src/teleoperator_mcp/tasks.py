@@ -1,4 +1,4 @@
-"""teleop_task_dispatch — language goal -> AUTO producer plan.
+"""teleop_task_dispatch - language goal -> AUTO producer plan.
 
 Turns a natural-language goal into a repeatable AUTO plan for the active
 producer. First cut: keyword waypoint profiles (forward, turn, approach,

@@ -2,7 +2,7 @@
 
 Replaces the forward-only nav stub for dispatched tasks: follow a list of
 waypoints (linear/angular set-points with durations). Not a real SLAM/nav
-stack — it drives to an implicit goal along a scripted profile, enough to make
+stack - it drives to an implicit goal along a scripted profile, enough to make
 `teleop_task_dispatch` meaningful on Boomy and to exercise the arbiter
 handoff under a repeatable producer.
 

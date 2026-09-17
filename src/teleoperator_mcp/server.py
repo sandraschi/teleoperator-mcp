@@ -376,7 +376,7 @@ async def show_teleop_status_card() -> dict:
 
         card = PrefabApp()
         mode = stats.get("authority", {}).get("base", "IDLE")
-        card.add_header("Teleoperator — Robot Status", subtitle=f"Mode: {mode}")  # type: ignore[reportAttributeAccessIssue]
+        card.add_header("Teleoperator - Robot Status", subtitle=f"Mode: {mode}")  # type: ignore[reportAttributeAccessIssue]
         card.add_stat_grid(  # type: ignore[reportAttributeAccessIssue]
             [
                 ("Active", "Yes" if stats.get("active") else "No"),
@@ -407,7 +407,7 @@ async def show_teleop_status_card() -> dict:
 
 @mcp.tool(annotations=_DESTRUCTIVE)
 async def teleop_shutdown(
-    confirm: Annotated[bool, Field(description="Confirm shutdown — MUST be True")] = False,
+    confirm: Annotated[bool, Field(description="Confirm shutdown - MUST be True")] = False,
 ) -> dict:
     """Gracefully shut down the teleoperator server.
 
@@ -440,7 +440,7 @@ async def teleop_voice_command(
 
     Maps the spoken transcript to a deterministic teleop action: emergency stop,
     take over, center or pan the camera, start/stop LiveKit video, switch base/gaze
-    between DIRECT and AUTO, or report status. No LLM on the hot path — keyword rules.
+    between DIRECT and AUTO, or report status. No LLM on the hot path - keyword rules.
 
     ## Return Format
     {"success": bool, "message": str, "action": str, "result": dict}
@@ -540,7 +540,7 @@ async def _execute_voice_command(transcript: str) -> dict:
     action = parsed.action
 
     if action == "unknown":
-        # T4.1: LLM fallback — let a local LLM interpret free-form voice before giving up.
+        # T4.1: LLM fallback - let a local LLM interpret free-form voice before giving up.
         # estop/safety keywords are handled upstream in parse_voice_command and never reach here.
         fallback = await _voice_llm_fallback(transcript)
         if fallback is not None:
@@ -777,7 +777,7 @@ class VoiceCommandBody(BaseModel):
 
 @app.post("/api/v1/teleop/voice")
 async def api_teleop_voice(body: VoiceCommandBody) -> dict:
-    """REST mirror of teleop_voice_command — STT transcripts from speech-mcp or the bus."""
+    """REST mirror of teleop_voice_command - STT transcripts from speech-mcp or the bus."""
     return await _execute_voice_command(body.transcript)
 
 
@@ -798,7 +798,7 @@ class ReleaseBody(BaseModel):
 
 @app.post("/api/v1/session/claim")
 async def api_session_claim(body: ClaimBody) -> dict:
-    """Claim a robot for an operator — returns the WS token (estop stays open)."""
+    """Claim a robot for an operator - returns the WS token (estop stays open)."""
     return claim_robot(body.operator_id, body.robot_id)
 
 
@@ -885,7 +885,7 @@ async def api_livekit_status() -> dict:
 
 @app.get("/api/v1/livekit/egress")
 async def api_livekit_egress() -> dict:
-    """Egress sink status — video frames recorded into teleop episodes (data flywheel)."""
+    """Egress sink status - video frames recorded into teleop episodes (data flywheel)."""
     return {"success": True, "egress": get_egress().status()}
 
 
@@ -973,7 +973,7 @@ async def api_skills() -> list[dict]:
 
 @app.get("/api/fleet/apps")
 async def fleet_apps() -> dict:
-    """Fleet Apps Hub catalog — local MCP webapps on Goliath.
+    """Fleet Apps Hub catalog - local MCP webapps on Goliath.
 
     The AppsPage fetches this on mount and re-legates unknown entries to an
     Experimental section. Entries are the fleet registry snapshot; unknown
@@ -1164,7 +1164,7 @@ async def diagnostics() -> dict:
 
 @app.get("/api/capabilities")
 async def capabilities() -> dict:
-    """Fleet webapp introspection — runtime tool surface (no secrets)."""
+    """Fleet webapp introspection - runtime tool surface (no secrets)."""
     tools = [
         "teleop_status",
         "teleop_configure",

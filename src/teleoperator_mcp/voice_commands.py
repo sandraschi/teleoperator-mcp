@@ -62,7 +62,7 @@ def parse_voice_command(transcript: str) -> ParsedCommand:
     """Map a spoken transcript to a deterministic teleop action."""
     text = (transcript or "").strip().lower()
 
-    # E-stop has priority — always exact-match first.
+    # E-stop has priority - always exact-match first.
     for kw in _ESTOP_KEYWORDS:
         if kw in text:
             return ParsedCommand(action="estop", args={})

@@ -1,4 +1,4 @@
-"""Shared runtime — robot binding, arbiter, recording."""
+"""Shared runtime - robot binding, arbiter, recording."""
 
 from __future__ import annotations
 

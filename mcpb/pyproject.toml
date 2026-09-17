@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "teleoperator-mcp"
 version = "0.1.0"
-description = "WebXR teleoperation gateway — VR pose streaming to fleet robots via MCP + WebSocket"
+description = "WebXR teleoperation gateway - VR pose streaming to fleet robots via MCP + WebSocket"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
@@ -52,6 +52,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "T201"]
+
+[tool.ruff.lint.per-file-ignores]
+"verify_pack.py" = ["T201"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -1,4 +1,4 @@
-"""vBoomy (Resonite virtual twin) teleop mapper — REST to robotics-mcp OSC gateway."""
+"""vBoomy (Resonite virtual twin) teleop mapper - REST to robotics-mcp OSC gateway."""
 
 from __future__ import annotations
 

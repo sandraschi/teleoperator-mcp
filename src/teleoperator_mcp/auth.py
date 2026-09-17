@@ -1,6 +1,6 @@
 """Operator claim / session authentication.
 
-Any browser on the tailnet can reach the backend — CORS restricts *origins*,
+Any browser on the tailnet can reach the backend - CORS restricts *origins*,
 not *operators*. Before a WebXR session can drive a robot, the operator must
 claim the robot by name and receive a token; the WebSocket requires it. The
 e-stop path stays open unauthenticated (safety veto must always work).

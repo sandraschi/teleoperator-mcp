@@ -1,4 +1,4 @@
-"""Per-group authority arbiter — merges producer commands for the robot adapter."""
+"""Per-group authority arbiter - merges producer commands for the robot adapter."""
 
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ class AuthorityArbiter:
         if not self._group_allowed(group):
             raise ValueError(f"Group '{group}' not available on {self.capabilities.robot_id}")
         if group == "manip" and not self.capabilities.has_arms:
-            raise ValueError("manip group not available — no arms")
+            raise ValueError("manip group not available - no arms")
 
         if mode == "AUTO":
             owner = self._default_auto_owner(group)

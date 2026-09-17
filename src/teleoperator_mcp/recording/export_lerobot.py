@@ -192,7 +192,7 @@ def _write_meta(
         "note": (
             "Egress image frames recorded via the LiveKit egress sink (observation.image.*)."
             if has_images
-            else "No image columns — enable TELEOP_LIVEKIT_EGRESS_ENABLED to capture video frames."
+            else "No image columns - enable TELEOP_LIVEKIT_EGRESS_ENABLED to capture video frames."
         ),
     }
     (meta_dir / "info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")

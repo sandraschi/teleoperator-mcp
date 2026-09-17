@@ -1,4 +1,4 @@
-"""Bumi (Noetix humanoid) teleop mapper — head → neck, stick → gated walk."""
+"""Bumi (Noetix humanoid) teleop mapper - head → neck, stick → gated walk."""
 
 from __future__ import annotations
 

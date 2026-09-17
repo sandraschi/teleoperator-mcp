@@ -1,4 +1,4 @@
-"""vBoomy virtual twin adapter — Resonite via robotics-mcp OSC."""
+"""vBoomy virtual twin adapter - Resonite via robotics-mcp OSC."""
 
 from __future__ import annotations
 

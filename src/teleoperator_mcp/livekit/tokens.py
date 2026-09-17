@@ -10,7 +10,7 @@ def _require_livekit_api():
         from livekit import api
     except ImportError as exc:
         raise RuntimeError(
-            "livekit-api not installed — run: uv sync (includes livekit extras)"
+            "livekit-api not installed - run: uv sync (includes livekit extras)"
         ) from exc
     return api
 

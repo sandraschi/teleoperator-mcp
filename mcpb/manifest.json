@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "teleoperator-mcp",
   "version": "0.1.0",
-  "description": "WebXR teleoperation gateway — VR pose streaming to fleet robots via MCP + WebSocket",
+  "description": "WebXR teleoperation gateway - VR pose streaming to fleet robots via MCP + WebSocket",
   "author": { "name": "Sandra Schipal" },
   "server": {
     "type": "python",

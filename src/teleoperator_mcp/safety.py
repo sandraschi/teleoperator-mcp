@@ -49,7 +49,7 @@ async def speak_auto_start_warning(*, bench: bool = False) -> None:
 
 
 async def force_auto_stop(http_client: httpx.AsyncClient, *, reason: str) -> dict:
-    """End AUTO: human takeover + zero drive (no estop latch — timed stop is not a fault)."""
+    """End AUTO: human takeover + zero drive (no estop latch - timed stop is not a fault)."""
     reset_auto_timer()
     arbiter = get_arbiter()
     arbiter.takeover()

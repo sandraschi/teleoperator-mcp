@@ -58,6 +58,7 @@ ignore = ["E501"]
 "scripts/*.py" = ["T201", "F841", "E741", "B007"]
 "scripts/just/*.ps1" = ["T201"]
 "run_server.py" = ["T201", "E402"]
+"mcpb/verify_pack.py" = ["T201"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -1,4 +1,4 @@
-"""Nav stub AUTO producer — slow forward crawl for Boomy base AUTO tests."""
+"""Nav stub AUTO producer - slow forward crawl for Boomy base AUTO tests."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from ..types import BaseCommand, ProducerCommand
 
 
 class NavStubProducer:
-    """Placeholder autonomy: constant slow forward only (no turns — furniture safety)."""
+    """Placeholder autonomy: constant slow forward only (no turns - furniture safety)."""
 
     producer_id = "nav_stub"
 

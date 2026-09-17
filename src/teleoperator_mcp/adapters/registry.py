@@ -1,4 +1,4 @@
-"""Robot adapter registry — ?robot= route selection."""
+"""Robot adapter registry - ?robot= route selection."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ PLANNED_ROBOTS: dict[str, dict] = {
     "r1-a5-d": {
         "status": "planned",
         "display_name": "Unitree R1-A5-D (wheeled dual-arm)",
-        "message": "Adapter not implemented — hardware-gated (M6).",
+        "message": "Adapter not implemented - hardware-gated (M6).",
     },
 }
 
@@ -66,4 +66,4 @@ def create_adapter(robot_id: str) -> RobotAdapter:
         return VboomyAdapter()
     if rid in PLANNED_ROBOTS:
         raise ValueError(f"Robot '{robot_id}' is planned but not available yet")
-    raise ValueError(f"Unknown robot '{robot_id}' — supported: boomy, bumi, vboomy")
+    raise ValueError(f"Unknown robot '{robot_id}' - supported: boomy, bumi, vboomy")

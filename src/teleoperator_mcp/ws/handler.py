@@ -142,7 +142,7 @@ async def trigger_set_mode(
     confirm_bench: bool = False,
 ) -> dict:
     if mode not in ("DIRECT", "AUTO"):
-        return {"success": False, "message": f"Invalid mode '{mode}' — use DIRECT or AUTO"}
+        return {"success": False, "message": f"Invalid mode '{mode}' - use DIRECT or AUTO"}
     if group not in ("base", "gaze", "manip"):
         return {"success": False, "message": f"Invalid group '{group}'"}
 
