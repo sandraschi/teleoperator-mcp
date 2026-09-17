@@ -103,18 +103,57 @@ pub fn materialize_backend(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(clean)
 }
 
+#[cfg(windows)]
+fn port_in_use(port: u16) -> bool {
+    let addr = SocketAddr::from_str(&format!("127.0.0.1:{port}")).unwrap();
+    TcpStream::connect_timeout(&addr, Duration::from_millis(200)).is_ok()
+}
+
+/// Multi-layer kill of whatever owns `port`, polling up to ~240s:
+/// Stop-Process (same-user) -> taskkill /F -> UAC-elevated taskkill -> poll.
 fn free_port(port: u16) {
     #[cfg(windows)]
     {
-        let script = format!(
-            "Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | ForEach-Object {{ taskkill /F /PID $_.OwningProcess /T 2>$null }}"
-        );
-        let _ = Command::new("powershell.exe")
-            .args(["-NoProfile", "-Command", &script])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-        thread::sleep(Duration::from_millis(300));
+        for attempt in 0..240u32 {
+            if !port_in_use(port) {
+                return;
+            }
+            match attempt {
+                0 => {
+                    let script = format!(
+                        "Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | ForEach-Object {{ Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }}"
+                    );
+                    let _ = Command::new("powershell.exe")
+                        .args(["-NoProfile", "-Command", &script])
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .status();
+                }
+                10 => {
+                    let script = format!(
+                        "Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | ForEach-Object {{ taskkill /F /PID $_.OwningProcess /T 2>$null }}"
+                    );
+                    let _ = Command::new("powershell.exe")
+                        .args(["-NoProfile", "-Command", &script])
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .status();
+                }
+                30 => {
+                    // UAC-elevated fallback for processes owned by another session/user.
+                    let script = format!(
+                        "Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | ForEach-Object {{ Start-Process taskkill -ArgumentList '/F','/PID',$_.OwningProcess,'/T' -Verb RunAs -WindowStyle Hidden -ErrorAction SilentlyContinue }}"
+                    );
+                    let _ = Command::new("powershell.exe")
+                        .args(["-NoProfile", "-Command", &script])
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .status();
+                }
+                _ => {}
+            }
+            thread::sleep(Duration::from_secs(1));
+        }
     }
 }
 
@@ -148,8 +187,12 @@ pub fn spawn_backend(app: AppHandle, state: &BackendProcess) -> Result<String, S
     let mut command = Command::new(&backend_path);
     command
         .current_dir(&workdir)
-        .env("PORT", BACKEND_PORT.to_string())
-        .env("HOST", "127.0.0.1")
+        // teleoperator_mcp.config.Settings uses pydantic env_prefix="TELEOP_" -
+        // plain PORT/HOST are never read by the backend (it silently falls
+        // back to its own hardcoded defaults, which happen to match
+        // BACKEND_PORT here - coincidence, not intent). Use the real names.
+        .env("TELEOP_PORT", BACKEND_PORT.to_string())
+        .env("TELEOP_HOST", "127.0.0.1")
         .env("TELEOPERATOR_TAURI", "1")
         .stdout(Stdio::null())
         .stderr(Stdio::null());

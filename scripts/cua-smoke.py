@@ -36,7 +36,9 @@ import urllib.request
 
 # ── Config ────────────────────────────────────────────────────────────
 
-DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cua-nsis-config.json")
+DEFAULT_CONFIG_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "cua-nsis-config.json"
+)
 
 
 def load_config(path: str | None = None) -> dict:
@@ -100,10 +102,16 @@ BRIDGE_OK_TEXT = cfg("bridge_ok_text", "REST bridge reachable")
 INSTALL_DIR = cfg("install_dir", "%LOCALAPPDATA%\\Pywinauto MCP Operator")
 OPERATOR_EXE = cfg("operator_exe", "pywinauto-mcp-operator.exe")
 PROCESS_NAMES = cfg("backend_process_names", ["pywinauto-mcp-operator", "pywinauto-mcp-backend"])
-NSIS_GLOB = cfg("nsis_glob", "web_sota/src-tauri/target/release/bundle/nsis/Pywinauto MCP Operator_*_x64-setup.exe")
+NSIS_GLOB = cfg(
+    "nsis_glob",
+    "web_sota/src-tauri/target/release/bundle/nsis/Pywinauto MCP Operator_*_x64-setup.exe",
+)
 REGISTRY_FILTER = cfg("uninstall_registry_filter", "*Pywinauto*")
-MAX_RETRY = 10
-RETRY_DELAY = 3
+MAX_RETRY = 20  # bumped from 10 - PyInstaller onefile cold-start extraction +
+RETRY_DELAY = 3  # fresh-file AV scan of a just-installed exe measured ~35-40s
+# on this machine (30s was too tight and produced a false FATAL while the
+# backend was still coming up; see native/build.ps1's own smoke-test hardening
+# note for the same class of timing issue).
 
 _INSTALLED = False
 
@@ -124,6 +132,7 @@ def log_warn(msg: str):
 try:
     import pywinauto
     import pywinauto.findwindows
+
     _HAS_PYWAUTO = True
 except ImportError:
     _HAS_PYWAUTO = False
@@ -163,7 +172,11 @@ def cua_find_window(title_re: str = "") -> dict | None:
         rect = win.rectangle()
         w = rect.width if isinstance(rect.width, int) else rect.width()
         h = rect.height if isinstance(rect.height, int) else rect.height()
-        return {"handle": handle, "title": win.window_text(), "rect": {"left": rect.left, "top": rect.top, "width": w, "height": h}}
+        return {
+            "handle": handle,
+            "title": win.window_text(),
+            "rect": {"left": rect.left, "top": rect.top, "width": w, "height": h},
+        }
     except Exception:
         return None
 
@@ -200,12 +213,15 @@ def cua_ocr_text(window_handle: int = 0, image_path: str = "") -> str:
     """Run OCR on a window screenshot. Returns text."""
     try:
         import pytesseract
+
         pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
         if image_path and os.path.exists(image_path):
             from PIL import Image
+
             return pytesseract.image_to_string(Image.open(image_path))
         if window_handle:
             from PIL import Image
+
             capture = cua_screenshot(window_handle, f"{image_path or 'capture'}.png")
             if capture and os.path.exists(capture):
                 return pytesseract.image_to_string(Image.open(capture))
@@ -218,6 +234,7 @@ def cua_click(window_handle: int, x: int, y: int):
     """Click at (x,y) relative to window."""
     try:
         import pywinauto.mouse
+
         pywinauto.mouse.click(button="left", coords=(x, y))
     except Exception:
         pass
@@ -227,6 +244,7 @@ def _release_mouse():
     """Release all mouse buttons — call after any clicking to prevent stuck input."""
     try:
         import ctypes
+
         MOUSEEVENTF_LEFTUP = 0x0004
         MOUSEEVENTF_RIGHTUP = 0x0010
         MOUSEEVENTF_MIDDLEUP = 0x0040
@@ -258,7 +276,9 @@ def phase_fail(msg: str):
 
 def kill_stale():
     for name in PROCESS_NAMES:
-        subprocess.run(["taskkill", "/F", "/IM", f"{name}.exe", "/T"], capture_output=True, timeout=10)
+        subprocess.run(
+            ["taskkill", "/F", "/IM", f"{name}.exe", "/T"], capture_output=True, timeout=10
+        )
     time.sleep(1)
     log("Stale processes killed")
 
@@ -375,7 +395,9 @@ def check_diagnostics():
                 f"System: CPU {d['system'].get('cpu_percent')}% | Mem {d['system'].get('memory_percent')}% | Disk {d['system'].get('disk_percent')}%"
             )
             log(f"Tools: {d['tools'].get('total')} registered")
-            log(f"CUA: Tesseract={d['cua_status']['tesseract_available']} Window={d['cua_status']['window_found']}")
+            log(
+                f"CUA: Tesseract={d['cua_status']['tesseract_available']} Window={d['cua_status']['window_found']}"
+            )
             if d.get("errors", {}).get("count", 0) > 0:
                 log(f"WARNING: {d['errors']['count']} errors logged")
         else:
@@ -402,7 +424,9 @@ def verify_webview_bridge(output_dir: str):
     elif text:
         os.makedirs(output_dir, exist_ok=True)
         log(f"WebView OCR text: {text[:200]}")
-        phase_fail(f"WebView bridge not OK — likely API_BASE/CSP/CORS (expected '{BRIDGE_OK_TEXT}')")
+        phase_fail(
+            f"WebView bridge not OK — likely API_BASE/CSP/CORS (expected '{BRIDGE_OK_TEXT}')"
+        )
     else:
         log("WebView bridge check skipped (no OCR available)")
 
@@ -413,7 +437,15 @@ def verify_webview_bridge(output_dir: str):
 def _verify_page_ocr(text: str, label: str, expected: str) -> bool:
     """Check OCR text for page validity. Returns True if page seems OK."""
     text_lower = text.lower()
-    fail_keywords = ["404", "not found", "could not find", "error", "timeout", "internal server error", "bad gateway"]
+    fail_keywords = [
+        "404",
+        "not found",
+        "could not find",
+        "error",
+        "timeout",
+        "internal server error",
+        "bad gateway",
+    ]
     for kw in fail_keywords:
         if kw in text_lower:
             log(f"  Page '{label}': ERROR keyword '{kw}' found in OCR")
@@ -431,6 +463,7 @@ def _verify_page_ocr(text: str, label: str, expected: str) -> bool:
 def _nav_click_element(win_handle: int, wx: int, wy: int, idx: int, label: str = ""):
     """Click a nav item. Tries title-based UIA matching first, then index, then coordinates."""
     import pywinauto
+
     app = pywinauto.Application(backend="uia").connect(handle=win_handle)
     w = app.window(handle=win_handle)
 
@@ -461,7 +494,7 @@ def _nav_click_element(win_handle: int, wx: int, wy: int, idx: int, label: str =
             return
     except Exception:
         pass
-    # Try Pane (some WebView versions)  
+    # Try Pane (some WebView versions)
     try:
         elements = w.descendants(control_type="Pane")
         nav_elements = [e for e in elements if e.rectangle().left < wx + 200]
@@ -486,7 +519,15 @@ def nav_click_through(output_dir: str):
     _release_mouse()
     _show_automation_warning()
 
-    nav_routes = cfg("nav_routes", [["Dashboard", "Automation Dashboard"], ["Logging", "Logs"], ["Settings", "Settings"], ["Help", "Help"]])
+    nav_routes = cfg(
+        "nav_routes",
+        [
+            ["Dashboard", "Automation Dashboard"],
+            ["Logging", "Logs"],
+            ["Settings", "Settings"],
+            ["Help", "Help"],
+        ],
+    )
     nav_routes = [(r[0], r[1]) for r in nav_routes if len(r) >= 2]
     win = cua_find_window(WINDOW_TITLE_RE)
     if not win:
@@ -501,6 +542,7 @@ def nav_click_through(output_dir: str):
     # Bring window to front and maximize (user was warned)
     try:
         import pywinauto
+
         app = pywinauto.Application(backend="uia").connect(handle=handle)
         w = app.window(handle=handle)
         w.set_focus()

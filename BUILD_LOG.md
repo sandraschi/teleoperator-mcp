@@ -1,5 +1,83 @@
 # Teleoperator MCP — Build Log
 
+## 2026-09-17 — NSIS build + CUA smoke test (post-assfix, commit ceb05ba)
+
+### Result
+- Installer: `native/target/release/bundle/nsis/Teleoperator MCP_0.1.0_x64-setup.exe` (54.75 MB).
+- CUA smoke test: 11/11 phases reported passed. Caveat: phases 4/5/8/9 (window
+  verify, screenshot, WebView bridge OCR proof, nav click-through) were
+  **skipped**, not genuinely exercised — "CUA client unavailable" in this
+  session, so no real mouse/keyboard automation ran. Genuinely verified:
+  install, launch, backend health, `/api/v1/diagnostics` feature route (HTTP
+  200, full JSON), log analysis (no errors), uninstall (exit 0, though
+  "App may still be registered" warning on the registry key).
+
+### Phase 1 pre-flight fixes (before first build attempt)
+- `native/src/backend.rs` `free_port()`: was single-layer taskkill-by-port with
+  a fixed 300ms sleep. Rewrote to multi-layer (Stop-Process -> taskkill ->
+  UAC-elevated taskkill) with a real up-to-240s poll loop, matching fleet
+  standard.
+- `native/src/main.rs`: added `restart_backend` Tauri command + `invoke_handler`
+  wiring (was missing entirely — no way to restart the backend from the UI).
+- `webapp/src/lib/capabilities.tsx`: `refresh()` only ran once on mount; added
+  a 5s `setInterval` poll so the HTTP health check is genuinely independent of
+  the Tauri `backend-status` event, not just a fallback that never re-fires.
+- `webapp/src/shell/Shell.tsx`: added a "Restart Backend" button (shown when
+  `error` is set), wired to the new `restart_backend` invoke.
+- `.gitignore`: added `cua-reports/`.
+
+### Real bugs found and fixed during the build (not pre-flight-checklist items —
+surfaced by the build/smoke-test loop itself)
+1. **PyInstaller spec `_keep_dist` pattern typo** (`teleoperator-mcp-backend.spec`):
+   kept dist-info for `"opentelemetry-"` (hyphen) but the actual installed
+   distribution folder is `opentelemetry_api-*.dist-info` (underscore) — never
+   matched, so opentelemetry's entry-point metadata was stripped and the frozen
+   backend crashed at import with `StopIteration` in
+   `opentelemetry/context/__init__.py`. Fixed the keep-pattern.
+2. **PyInstaller spec `SKIP` list collateral damage**: `"scipy"` as a bare
+   substring also matched numpy's own vendored BLAS DLL
+   (`numpy.libs\libscipy_openblas64_-*.dll`), stripping it and breaking numpy
+   entirely (`ImportError: DLL load failed while importing _multiarray_umath`).
+   Rewrote the skip check to be path-segment-aware (`scipy\` as a directory
+   component) instead of a blind substring match.
+3. **PyInstaller spec `SKIP` list wrongly excluded PIL**: `teleoperator_mcp.
+   livekit.mjpeg` genuinely imports `PIL.Image` for MJPEG decoding, but `SKIP`
+   assumed Pillow was an unused vendored dependency and stripped it
+   (`ImportError: cannot import name '_imaging' from 'PIL'`). Removed `"PIL"`
+   from `SKIP`.
+4. **Wrong env var names for backend port/host** (root cause of most Phase 4
+   flakiness): `teleoperator_mcp.config.Settings` uses pydantic
+   `env_prefix="TELEOP_"` (reads `TELEOP_PORT`/`TELEOP_HOST`), but
+   `native/src/backend.rs` was setting plain `PORT`/`HOST` (silently ignored —
+   production only "worked" because the default already matched 10901) and
+   `native/build.ps1`'s smoke test was setting `MCP_PORT`/`MCP_HOST` (also
+   ignored, so the smoke test's port-isolation to 11999 never actually worked).
+   Fixed `backend.rs` to set `TELEOP_PORT`/`TELEOP_HOST`. `native/build.ps1`
+   was independently fixed the same way by a concurrent session mid-build.
+5. **`scripts/cua-nsis-config.json` `health_path` wrong**: set to `/health`,
+   but the backend only exposes `/api/v1/health`. Every external health check
+   from `cua-smoke.py` hit a 404 (silently retried, never diagnosed), making
+   Phase 3 (launch) FATAL after the retry budget even though the backend was
+   genuinely healthy within a few seconds every time (confirmed via
+   `backend-spawn.log`). This was the actual root cause of the repeated "Backend
+   not reachable" failures, not a timing issue. Fixed `health_path` to
+   `/api/v1/health`.
+6. `scripts/just/cua-nsis-test.ps1`: `Join-Path $PSScriptRoot ".." ".."` (3
+   positional args) fails on Windows PowerShell 5.1 — fixed to a single
+   `"..\.."` argument. Flagged for fleet-wide template audit.
+7. `scripts/cua-smoke.py`: bumped `MAX_RETRY` 10 -> 20 (30s -> 60s budget) for
+   PyInstaller-onefile cold-start + fresh-install AV-scan latency. Flagged for
+   fleet-wide template sync.
+8. Environment note: this build repeatedly collided with orphaned
+   `teleoperator-mcp-backend.exe`/`teleoperator-mcp-native.exe` processes from
+   earlier manual diagnostic runs and PyInstaller's onefile bootloader
+   (child survives `.Kill()` on the parent `Process` handle in
+   `build.ps1`'s own smoke test) — required repeated `taskkill /F /IM ... /T`
+   between attempts. Also observed a second, independent `just build-native`
+   invocation running concurrently against this same repo mid-session; several
+   fixes (build.ps1 env var names, pyinstaller dev dependency) landed from that
+   session in parallel with this one.
+
 ## 2026-08-19 — round 4: LiveKit egress sink (T3.3 complete)
 
 - `recording/egress.py`: ring-buffer frame sink fed by the publisher (mjpeg + snapshot loops); recorder matches to teleop frames, saves `images/observation.image/`, writes `observation.image.image` column.

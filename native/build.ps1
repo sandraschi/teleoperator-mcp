@@ -6,11 +6,25 @@ $ResourceDir = "$PSScriptRoot\resources"
 $DevDir = "$PSScriptRoot\binaries"
 New-Item -ItemType Directory -Force -Path $ResourceDir, $DevDir | Out-Null
 
-# Step 0: Free backend port from stale processes
+# Step 0: Free backend port from stale processes.
+# HARDENED 2026-09-17: was a blind Stop-Process + Start-Sleep -Seconds 2 with no
+# verification - same fixed-sleep-then-assume-it-worked race as the Step 2 smoke
+# test (TRAPS_AND_PITFALLS.md #36). A process that doesn't die within 2s (elevated,
+# orphaned child, AV holding a handle) left the port still bound and the script
+# proceeded anyway. Now polls until the port is actually free, up to 15s.
 Get-NetTCPConnection -LocalPort 10901 -ErrorAction SilentlyContinue | ForEach-Object {
     Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
 }
-Start-Sleep -Seconds 2
+$portFreeWaitSec = 15
+$portFreeElapsed = 0
+while ($portFreeElapsed -lt $portFreeWaitSec) {
+    Start-Sleep -Milliseconds 500
+    $portFreeElapsed += 0.5
+    if (-not (Get-NetTCPConnection -LocalPort 10901 -ErrorAction SilentlyContinue)) { break }
+}
+if (Get-NetTCPConnection -LocalPort 10901 -ErrorAction SilentlyContinue) {
+    Write-Host "  WARNING: port 10901 still held after ${portFreeWaitSec}s - proceeding anyway, backend build may fail to bind" -ForegroundColor DarkYellow
+}
 
 Write-Host "=== ${RepoName} Tauri Release Build ===" -ForegroundColor Cyan
 
@@ -83,25 +97,54 @@ if (Test-Path $specFile) {
     if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
 
     # Gate: smoke-test the frozen binary (catches ALL import crashes generically)
+    # HARDENED 2026-09-17: a fixed 5s sleep race-loses against PyInstaller onefile
+    # cold-start (archive extraction to _MEI + AV scan of freshly-written DLLs can
+    # take well over 5s) - the crash (e.g. missing PIL._imaging) happens AFTER the
+    # single HasExited check, so Kill() fires on a process that hasn't crashed YET,
+    # reads as "healthy", and a broken backend ships into the installer. See
+    # mcp-central-docs/standards/TRAPS_AND_PITFALLS.md for the incident this fixed.
+    # Fix: poll HasExited AND actually confirm the server bound its port, up to a
+    # real timeout, instead of trusting "hasn't crashed after N seconds" as a proxy
+    # for "works".
     $frozenExe = "$Root\dist\${RepoName}-backend.exe"
     Write-Host "  Smoke-testing frozen binary..." -ForegroundColor Yellow
     $testPort = 11999
-    $oldPort = $env:MCP_PORT
-    $oldHost = $env:MCP_HOST
-    $env:MCP_PORT = "$testPort"
-    $env:MCP_HOST = "127.0.0.1"
+    # NOTE 2026-09-17: config.py uses env_prefix="TELEOP_" (Settings.port/.host) -
+    # MCP_PORT/MCP_HOST here were never read by the app, so this smoke test always
+    # exercised the default port 10901 no matter what it set, silently, for as long
+    # as the gate only checked HasExited (see TRAPS_AND_PITFALLS.md #36a). The
+    # polling port-check above is what surfaced the mismatch.
+    $oldPort = $env:TELEOP_PORT
+    $oldHost = $env:TELEOP_HOST
+    $env:TELEOP_PORT = "$testPort"
+    $env:TELEOP_HOST = "127.0.0.1"
     $testProc = Start-Process -FilePath $frozenExe -NoNewWindow -PassThru -RedirectStandardError "$Root\dist\pyi-crash.log"
-    Start-Sleep -Seconds 5
-    $env:MCP_PORT = $oldPort
-    $env:MCP_HOST = $oldHost
+    $maxWaitSec = 30
+    $pollMs = 500
+    $elapsedSec = 0
+    $portReady = $false
+    while ($elapsedSec -lt $maxWaitSec) {
+        Start-Sleep -Milliseconds $pollMs
+        $elapsedSec += $pollMs / 1000
+        if ($testProc.HasExited) { break }
+        $portReady = (Test-NetConnection -ComputerName 127.0.0.1 -Port $testPort -InformationLevel Quiet -WarningAction SilentlyContinue)
+        if ($portReady) { break }
+    }
+    $env:TELEOP_PORT = $oldPort
+    $env:TELEOP_HOST = $oldHost
     if ($testProc.HasExited) {
-        $crash = Get-Content "$Root\dist\pyi-crash.log" -Raw
-        throw "Frozen binary crashed on launch (exit $($testProc.ExitCode)):`n$crash"
+        $crash = Get-Content "$Root\dist\pyi-crash.log" -Raw -ErrorAction SilentlyContinue
+        throw "Frozen binary crashed on launch (exit $($testProc.ExitCode)) after ${elapsedSec}s:`n$crash"
+    }
+    if (-not $portReady) {
+        $testProc.Kill()
+        $testProc.Dispose()
+        throw "Frozen binary never opened port $testPort within ${maxWaitSec}s - hung or failed silently (not a crash, but not working either). Check $Root\dist\pyi-crash.log"
     }
     $testProc.Kill()
     $testProc.Dispose()
     Remove-Item "$Root\dist\pyi-crash.log" -Force -ErrorAction SilentlyContinue
-    Write-Host "  Frozen binary smoke test PASSED" -ForegroundColor Green
+    Write-Host "  Frozen binary smoke test PASSED (port $testPort confirmed open after ${elapsedSec}s)" -ForegroundColor Green
 } else {
     Write-Host "  WARNING: spec file not found at $specFile - using existing backend exe if present" -ForegroundColor DarkYellow
 }

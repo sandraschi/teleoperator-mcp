@@ -51,3 +51,6 @@ data/lerobot_export/
 
 # Reports (generated — not source code)
 reports/
+
+# CUA smoke-test artifacts
+cua-reports/

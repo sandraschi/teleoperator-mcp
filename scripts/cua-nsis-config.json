@@ -4,7 +4,7 @@
   "operator_exe": "teleoperator-mcp-native.exe",
   "backend_process_names": ["teleoperator-mcp-native", "teleoperator-mcp-backend"],
   "backend_port": 10901,
-  "health_path": "/health",
+  "health_path": "/api/v1/health",
   "diagnostics_path": "/api/v1/diagnostics",
   "feature_smoke_path": "/api/v1/diagnostics",
   "window_title_re": "Teleoperator MCP",

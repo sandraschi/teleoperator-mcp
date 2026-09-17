@@ -25,7 +25,14 @@ if ($conn) {
     if ($procId -match '^\d+$') {
         Write-Host "Stopping PID $procId on port 10901"
         Stop-Process -Id ([int]$procId) -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 2
+        # HARDENED 2026-09-17: was a blind Start-Sleep -Seconds 2, no check the
+        # process/port actually cleared (TRAPS_AND_PITFALLS.md #36). Poll instead.
+        $killWaitSec = 10
+        $killElapsed = 0
+        while ($killElapsed -lt $killWaitSec -and (Get-Process -Id ([int]$procId) -ErrorAction SilentlyContinue)) {
+            Start-Sleep -Milliseconds 500
+            $killElapsed += 0.5
+        }
     }
 }
 
@@ -43,13 +50,24 @@ Start-Process pwsh -ArgumentList @(
     "Set-Location '$PWD'; uv run python -m teleoperator_mcp.server --mode dual --port 10901"
 ) -WindowStyle Minimized
 
-Start-Sleep -Seconds 4
-try {
-    $h = Invoke-RestMethod -Uri "http://127.0.0.1:10901/api/v1/health" -TimeoutSec 5
+# HARDENED 2026-09-17: was a single blind Start-Sleep -Seconds 4 then ONE health
+# check attempt - a slow uvicorn/dual-mode startup past 4s reported a false
+# "may not have started correctly" (TRAPS_AND_PITFALLS.md #36). Poll instead.
+$healthOk = $false
+$healthWaitSec = 20
+$healthElapsed = 0
+while ($healthElapsed -lt $healthWaitSec -and -not $healthOk) {
+    Start-Sleep -Milliseconds 500
+    $healthElapsed += 0.5
+    try {
+        $h = Invoke-RestMethod -Uri "http://127.0.0.1:10901/api/v1/health" -TimeoutSec 2
+        $healthOk = $true
+    } catch {}
+}
+if ($healthOk) {
     Write-Host "Health OK uptime=$($h.uptime_s)"
     Invoke-TeleopSpeak "Teleoperator backend is online."
-}
-catch {
-    Write-Host "Health check failed: $($_.Exception.Message)"
+} else {
+    Write-Host "Health check failed after ${healthWaitSec}s"
     Invoke-TeleopSpeak "Warning. Teleoperator backend may not have started correctly."
 }

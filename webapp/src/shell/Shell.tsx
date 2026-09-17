@@ -47,6 +47,16 @@ export function Shell() {
 
   useTauriBackendListener({ onReady: handleBackendReady, onError: handleBackendError });
 
+  const handleRestartBackend = useCallback(async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("restart_backend");
+    } catch {
+      // Not running inside Tauri (dev browser) - nothing to restart locally.
+    }
+    void refresh();
+  }, [refresh]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!e.ctrlKey) return;
@@ -100,6 +110,16 @@ export function Shell() {
           <span data-testid="backend-dot" className={`status-pill ${error ? "warn" : "ok"}`}>
             MCP {loading ? "…" : error ? "offline" : "ok"}
           </span>
+          {error && (
+            <button
+              type="button"
+              className="status-pill warn"
+              data-testid="restart-backend"
+              onClick={() => void handleRestartBackend()}
+            >
+              Restart Backend
+            </button>
+          )}
           {caps && (
             <span className="status-pill ok" data-testid="kpi-server">
               {caps.tool_surface.total} tools

@@ -44,7 +44,7 @@ a = Analysis(
     noarchive=True,
 )
 # Strip .dist-info but preserve metadata for packages that need it at runtime
-_keep_dist = ["fastmcp-", "fastmcp_slim-", "mcp-", "prefab_ui-", "opentelemetry-", "email_validator-"]
+_keep_dist = ["fastmcp-", "fastmcp_slim-", "mcp-", "prefab_ui-", "opentelemetry", "email_validator-"]
 _saved = [
     e
     for e in a.datas
@@ -68,13 +68,25 @@ SKIP = [
     "boto3",
     "botocore",
     "matplotlib",
-    "PIL",
+    # NOTE: "PIL" intentionally NOT in SKIP - teleoperator_mcp.livekit.mjpeg
+    # imports PIL.Image for MJPEG decoding; stripping it breaks the frozen
+    # backend at import time (ImportError: cannot import name '_imaging').
     "pandas",
     "scipy",
     "sklearn",
     "onnxruntime",
 ]
-a.binaries = [b for b in a.binaries if not any(s in b[0].lower() for s in SKIP)]
+def _skip_binary(dest_path: str) -> bool:
+    low = dest_path.lower().replace("/", "\\")
+    # "scipy" as a bare substring also matches numpy's own vendored BLAS lib
+    # (numpy.libs\libscipy_openblas64_-*.dll) - only skip real scipy package
+    # files, identified by "scipy" as a path segment, not a substring.
+    if low.startswith("scipy\\") or low.startswith("scipy-") or "\\scipy\\" in low:
+        return True
+    return any(s for s in SKIP if s != "scipy" and s.lower() in low)
+
+
+a.binaries = [b for b in a.binaries if not _skip_binary(b[0])]
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,

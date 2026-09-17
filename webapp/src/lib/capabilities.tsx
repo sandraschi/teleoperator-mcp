@@ -39,6 +39,10 @@ export function CapabilitiesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refresh();
+    // Independent HTTP poll — belt-and-suspenders alongside the Tauri
+    // `backend-status` event, which can be missed if the listener mounts late.
+    const id = window.setInterval(() => void refresh(), 5000);
+    return () => window.clearInterval(id);
   }, [refresh]);
 
   const value = useMemo(() => ({ caps, loading, error, refresh }), [caps, loading, error, refresh]);
