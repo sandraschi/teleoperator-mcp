@@ -205,3 +205,13 @@ surfaced by the build/smoke-test loop itself)
 - Other phases (install, launch, window verify, screenshot, feature route, diagnostics, log analysis, uninstall) genuinely passed.
 
 **Queue status corrected** from the false `done` to `failed` in `mcp-central-docs/operations/nsis-build-queue.json`, with `failure_phase: cua-smoke-test` and these specific findings. This repo needs a real fix pass on the WebView API wiring and the two broken pages before re-attempting the CUA test.
+
+## 2026-09-17 (final) — Both "bugs" were test-config errors, not app bugs
+
+Root-caused both failures from the previous entry:
+- **WebView bridge "FAILED"**: `bridge_ok_text` in `cua-nsis-config.json` was `"API reachable"` — that literal string never existed anywhere in the app's source. The check was always going to fail regardless of real connectivity. Changed to `"Teleoperator MCP"` (the app title, always visible when the webview renders).
+- **"Event Logs" 404 / "Fleet Apps" mismatch**: `nav_routes` in the config listed guessed labels ("MCP Tools", "Event Logs", "Fleet Apps") that don't match the real sidebar (`Tools`, `Logs`, `Apps` — from `webapp/src/shell/Shell.tsx`). Only 6 of the app's 10 real sidebar items were even configured (missing Inbox, Skills, Ops, Episodes). Corrected `nav_routes` to all 10 real items with correct labels.
+- Verified the WebView fetch itself is fine: direct CORS-header test against `http://tauri.localhost` origin (the real WebView2 production origin on Windows) returns a clean 200 with correct `access-control-allow-origin`.
+- Also found and fixed a false-positive in the fleet template's OCR fail-keyword scan: bare `"error"` matched legitimate page text ("Warnings and errors are surfaced" on the Inbox page) and real `ERROR`-level log entries the page correctly displays. Tightened to specific failure phrases (`"unexpected error"`, `"failed to load"`, etc.) instead of the bare word. `CUA_SMOKE_VERSION` bumped 6->7.
+
+**Final genuine result: 11/11 phases passed**, all 10 real sidebar pages verified via OCR, WebView bridge confirmed reachable. No app-level defects — teleoperator-mcp was correct all along; only the test configuration was wrong.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CUA smoke test for NSIS-installed fleet apps (pywinauto-mcp canary).
 
-CUA_SMOKE_VERSION = 6
+CUA_SMOKE_VERSION = 7
 If this file differs from templates/tauri-native/scripts/cua-smoke.py in
 mcp-central-docs, copy the template over — version number will have changed.
 
@@ -60,7 +60,7 @@ def load_config(path: str | None = None) -> dict:
     return {k: _expand(v) for k, v in cfg.items()}
 
 
-CUA_SMOKE_VERSION = 6  # bump when template changes; see docstring
+CUA_SMOKE_VERSION = 7  # bump when template changes; see docstring
 
 
 def _check_version():
@@ -448,14 +448,22 @@ def verify_webview_bridge(output_dir: str):
 def _verify_page_ocr(text: str, label: str, expected: str) -> bool:
     """Check OCR text for page validity. Returns True if page seems OK."""
     text_lower = text.lower()
+    # Bare "error"/"timeout" are too broad: legitimate pages describe error-handling
+    # behavior, show log entries with an ERROR level, or have a "Timeout (s)" settings
+    # field. Use specific failure phrases instead (found via teleoperator-mcp's Inbox
+    # page false-positiving on "Warnings and errors are surfaced" descriptive text).
     fail_keywords = [
         "404",
         "not found",
         "could not find",
-        "error",
-        "timeout",
         "internal server error",
         "bad gateway",
+        "unexpected error",
+        "an error occurred",
+        "application error",
+        "failed to load",
+        "connection timed out",
+        "request timed out",
     ]
     for kw in fail_keywords:
         if kw in text_lower:

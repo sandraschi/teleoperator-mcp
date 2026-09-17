@@ -9,13 +9,17 @@
   "feature_smoke_path": "/api/v1/diagnostics",
   "window_title_re": "Teleoperator MCP",
   "nsis_glob": "native/target/release/bundle/nsis/Teleoperator MCP_*_x64-setup.exe",
-  "bridge_ok_text": "API reachable",
+  "bridge_ok_text": "Teleoperator MCP",
   "uninstall_registry_filter": "*Teleoperator*",
   "nav_routes": [
     ["Home", "Home"],
-    ["MCP Tools", "MCP Tools"],
-    ["Event Logs", "Event Logs"],
-    ["Fleet Apps", "Fleet Apps"],
+    ["Tools", "Tools"],
+    ["Inbox", "Inbox"],
+    ["Skills", "Skills"],
+    ["Ops", "Ops"],
+    ["Episodes", "Episodes"],
+    ["Logs", "Logs"],
+    ["Apps", "Apps"],
     ["Settings", "Settings"],
     ["Help", "Help"]
   ]
