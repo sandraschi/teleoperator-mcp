@@ -7,6 +7,8 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+native/resources/*.exe
+native/resources/.env.example
 .venv/
 venv/
 .env

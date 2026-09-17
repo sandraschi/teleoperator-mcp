@@ -69,7 +69,10 @@ cov_report = "term-missing"
 
 [dependency-groups]
 dev = [
+    "pillow>=12.2.0",
     "pyinstaller>=6.22.3",
     "pyright>=1.1.411",
+    "pytesseract>=0.3.13",
     "pytest-cov>=7.1.0",
+    "pywinauto>=0.6.9",
 ]

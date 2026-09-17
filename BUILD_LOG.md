@@ -192,3 +192,16 @@ surfaced by the build/smoke-test loop itself)
 
 - Webapp npm install pending (requires node_modules access).
 - Webapp Tailwind migration pending.
+
+## 2026-09-17 (later same day) — CUA re-verification: original pass was FALSE, real failures found
+
+**Discovery**: the original CUA pass above was false, same root cause as gitee-mcp: `pywinauto` was never a project dependency, so every GUI-driven phase silently skipped and the script printed a misleading pass summary.
+
+**Fix**: added `pywinauto>=0.6.9`, `pillow` (already present), `pytesseract>=0.3.13` as dev dependencies. Synced the fixed fleet-template `cua-smoke.py` (`CUA_SMOKE_VERSION` 6).
+
+**Genuine re-run result: 10/11 phases passed, real failures found**:
+- **Phase 8 — WebView bridge: FAILED.** OCR of the dashboard shows "Backend: Offline", "Teleop session: Idle" — the frontend never successfully reaches the backend API despite the backend being healthy per Phase 3/6/7's direct HTTP checks. Likely `API_BASE`/CSP/CORS misconfiguration specific to the WebView context (works via direct HTTP, not via the webview's fetch calls). Needs investigation before this repo can be considered installer-ready.
+- **Nav click-through — 2 of 6 pages failed**: "Event Logs" page shows a literal `404` in OCR (broken route). "Fleet Apps" page's expected content was not found (wrong/blank page).
+- Other phases (install, launch, window verify, screenshot, feature route, diagnostics, log analysis, uninstall) genuinely passed.
+
+**Queue status corrected** from the false `done` to `failed` in `mcp-central-docs/operations/nsis-build-queue.json`, with `failure_phase: cua-smoke-test` and these specific findings. This repo needs a real fix pass on the WebView API wiring and the two broken pages before re-attempting the CUA test.
