@@ -74,9 +74,7 @@ ci:
 
 # Build Tauri native desktop app (full pipeline: frontend + backend)
 build-native:
-    Set-Location '{{justfile_directory()}}\native'
-    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
-    pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
+    Set-Location '{{justfile_directory()}}\native'; $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
 
 # One command: pre-flight checks -> build -> genuine CUA verification.
 tauri: tauri-preflight build-native cua-nsis-test
