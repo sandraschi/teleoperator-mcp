@@ -70,7 +70,7 @@ async def main() -> None:
 
     # Pre: backend health
     try:
-        h = httpx.get(f"{BACKEND}/api/v1/health", timeout=5).json()
+        h = (await asyncio.to_thread(httpx.get, f"{BACKEND}/api/v1/health", timeout=5)).json()
         check("backend health", h.get("status") == "ok", str(h.get("status")))
     except Exception as e:
         check("backend health", False, str(e))
@@ -78,7 +78,7 @@ async def main() -> None:
 
     # Pre: yahboom-mcp health (robot may be offline — that's OK, bridge must answer)
     try:
-        y = httpx.get(f"{YAHBOOM}/api/v1/health", timeout=5).json()
+        y = (await asyncio.to_thread(httpx.get, f"{YAHBOOM}/api/v1/health", timeout=5)).json()
         check(
             "yahboom-mcp reachable",
             True,
@@ -118,7 +118,7 @@ async def main() -> None:
     check("no protocol errors", len(errors) == 0, "; ".join(errors[:3]))
 
     # Post: session stats via REST
-    s = httpx.get(f"{BACKEND}/api/v1/health", timeout=5).json()
+    s = (await asyncio.to_thread(httpx.get, f"{BACKEND}/api/v1/health", timeout=5)).json()
     teleop = s.get("teleop", {})
     frames_in = teleop.get("frames_in", 0)
     check("frames_in incremented", frames_in >= args.frames - 2, f"frames_in={frames_in}")
