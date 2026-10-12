@@ -16,7 +16,6 @@ import argparse
 import asyncio
 import json
 import sys
-import time
 from pathlib import Path
 
 import httpx
@@ -112,7 +111,7 @@ async def main() -> None:
 
         # estop message type
         await ws.send(json.dumps({"type": "estop"}))
-        time.sleep(0.3)
+        await asyncio.sleep(0.3)
 
     check("ws closed cleanly", True)
     check("all frames acked", ack_seen == args.frames, f"acked={ack_seen}/{args.frames}")
