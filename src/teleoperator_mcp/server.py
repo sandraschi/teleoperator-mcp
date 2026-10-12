@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import logging
 import subprocess
 import sys
@@ -1035,7 +1036,7 @@ async def llm_providers() -> dict:
         logger.warning("Ollama probe failed - local LLM unavailable", exc_info=True)
     return {
         "providers": [{"name": "ollama", "models": models}],
-        "gpu": _gpu_detect(),
+        "gpu": await asyncio.to_thread(_gpu_detect),
     }
 
 
