@@ -1,4 +1,4 @@
-﻿# Per-repo fleet start config for teleoperator-mcp
+# Per-repo fleet start config for teleoperator-mcp
 # Edit ports/backend target here - start.ps1 is fleet-standard.
 @{
     Name         = 'teleoperator-mcp'
@@ -10,6 +10,7 @@
         Kind          = 'uvicorn'
         UvicornTarget = 'teleoperator_mcp.server:app'
         SyncExtras    = @('dev')
+        SyncOnStart  = $true
         Env           = @{ WEB_PORT = '10901' }
     }
     Frontend = @{
